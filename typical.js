@@ -1,5 +1,8 @@
+// T is a typed function constructor. The leading arguments
+// serve as the type annotation, similar to Haskell arrow definitions.
+// The last argument is then the function body.
+var root;
 var T = function(/* types, fun */) {
-  // accepts a function, a return type, and argument types as argument.
   var args = toArray(arguments),
       fun = last(args),
       lead = args.slice(0,-1),
@@ -169,4 +172,11 @@ T.Type = function(args) {
   this.args = args.slice(0, -1);    
 };
 
-module.exports = T;
+T.annotate = function(fun, annotation) {
+  root[fun] = T.apply({}, toArray(annotation).concat(fun));
+};
+
+module.exports = function(r) {
+  root = r;
+  return T;
+};
