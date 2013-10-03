@@ -1,8 +1,8 @@
 T = require('./typical')
 
 // typed function definition
-map = T.build(T([Number, Number]), [Number], [Number], function(f, xs) { return xs.map(f) })
-f = T.build(Number, Number, function(x) { return x+1 })
+map = T(function(f, xs) { return xs.map(f) }, T([Number, Number]), [Number], [Number])
+f = T(function(x) { return x+1 }, Number, Number)
 
 console.log(map(f, [1,2,3]))
 
