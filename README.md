@@ -8,7 +8,7 @@ f = function(x) { return x+1 }
 T(f, Number, Number)
 ```
 ```javascript
-f = T.build(Number, Number, function(x) { return x+1 })
+f = T(function(x) { return x+1 }, Number, Number)
 ```
 
 ## Getting Started
@@ -45,7 +45,7 @@ join = function(xs, ys, f) {
   })
 }
 T(join, [Number], [Number], T([Number, Number, Number]), [Number])
-sum = T(Number, Number, Number, function(x, y) { return x + y })
+sum = T(function(x, y) { return x + y }, Number, Number, Number)
 zipSum = function(xs, ys) { return join(xs, ys, sum) }
 T(zipSum, [Number], [Number], [Number])
 ```
