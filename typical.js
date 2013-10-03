@@ -2,6 +2,8 @@
 // serve as the type annotation, similar to Haskell arrow definitions.
 // The last argument is then the function body.
 var root;
+
+// the primary function, for constructing typed functions
 var T = function(fun/*, annotation*/) {
   // form a namespace based around globals
   T.init();
@@ -12,26 +14,16 @@ var T = function(fun/*, annotation*/) {
     return T.Type.apply({}, arguments[0]);
   }
 
-  // find function name by value and replace it with a typed form
-  var name = Object.keys(root).filter(function(k){return root[k]==fun})[0];
+  // find function name by value
+  var name = Object.keys(root).filter(function(k){ return root[k]==fun })[0];
 
-  // if could not find in scope, build and return a function
+  // if could not find in scope, build and return a function.
   if( !name ) {
     return T.build.apply({}, toArray(arguments).slice(1).concat(fun));
   }
+
+  // replace found function variable with a typed form
   root[name] = T.build.apply({}, toArray(arguments).slice(1).concat(fun));
-};
-
-T.init = function() {
-  // if a root element has been set, return
-  if( root ) return;
-
-  // attempt browser globals, fallback to node
-  try {
-    root = window;
-  } catch(err) {
-    root = GLOBAL;
-  }
 };
 
 T.build = function(/* types, fun */) {
@@ -71,6 +63,38 @@ T.build = function(/* types, fun */) {
   return f;
 };  
 
+T.checker = function(message, fun) {
+  var f = function(/* args */) {
+    return fun.apply(fun, arguments);
+  };
+
+  f['message'] = message;
+  return f;
+};
+
+T.void = void 0;
+
+T.Type = function(args) {
+  // define a function type by means of T.Type(ret, arg1, ...) with
+  // each argument being a type such as Number.
+  if( !(this instanceof T.Type) ) return new T.Type(toArray(arguments));
+  this.ret = last(args);
+  this.args = args.slice(0, -1);    
+};
+
+T.init = function() {
+  // if a root element has been set, return
+  if( root ) return;
+
+  // attempt browser globals, fallback to node
+  try {
+    root = window;
+  } catch(err) {
+    root = GLOBAL;
+  }
+};
+
+// function dependencies
 var existy = function(x) {
   return typeof x != "undefined";
 };
@@ -86,23 +110,26 @@ var isEmpty = function(x) {
 var last = function(x) {
   return x[x.length-1];
 };
-
-T.checker = function(message, fun) {
-  var f = function(/* args */) {
-    return fun.apply(fun, arguments);
-  };
-
-  f['message'] = message;
-  return f;
-};
-
-function mapcat(f, xs) {
+var mapcat = function(f, xs) {
   return xs.map(f).reduce(function(a, b) {
     return a.concat(b);
   }, []);
-}
+};
+var argTypeChecker = function (type, argNum) {
+  // form a checker function based on the provided type.
+  var checker = getType(type);
 
-function getType(type) {
+  // define an error to display in the case of a type error.
+  var msg = ["Expected argument at index ",
+	      argNum,
+	      " to be of type ",
+	      checker.name,
+	      "."].join("");
+
+  // return a checker.	       
+  return T.checker(msg, checker.fun);
+};
+var getType = function(type) {
   if( type instanceof T.Type ) {
     // a function type definition was passed 
     return {
@@ -177,32 +204,6 @@ function getType(type) {
       }
     };
   }
-}
-
-function argTypeChecker(type, argNum) {
-  // form a checker function based on the provided type.
-  var checker = getType(type);
-
-  // define an error to display in the case of a type error.
-  var msg = ["Expected argument at index ",
-	      argNum,
-	      " to be of type ",
-	      checker.name,
-	      "."].join("");
-
-  // return a checker.	       
-  return T.checker(msg, checker.fun);
-}
-
-
-T.void = void 0;
-
-T.Type = function(args) {
-  // define a function type by means of T.Type(ret, arg1, ...) with
-  // each argument being a type such as Number.
-  if( !(this instanceof T.Type) ) return new T.Type(toArray(arguments));
-  this.ret = last(args);
-  this.args = args.slice(0, -1);    
 };
 
 module.exports = T; 
