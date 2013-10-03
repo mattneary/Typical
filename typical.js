@@ -176,7 +176,8 @@ T.annotate = function(fun, annotation) {
   root[fun] = T.apply({}, toArray(annotation).concat(fun));
 };
 
-module.exports = function(r) {
-  root = r;
-  return T;
+T.module = function(env) {
+  root = env;  
 };
+
+module.exports = T; 
