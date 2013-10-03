@@ -173,11 +173,13 @@ T.Type = function(args) {
 };
 
 T.annotate = function(fun, annotation) {
-  root[fun] = T.apply({}, toArray(annotation).concat(fun));
+  // find object name by value
+  var name = Object.keys(root).filter(function(k){return root[k]==fun})[0];
+  root[name] = T.apply({}, toArray(arguments).slice(1).concat(fun));
 };
 
 T.module = function(env) {
-  root = env;  
+  root = env; 
 };
 
 module.exports = T; 
