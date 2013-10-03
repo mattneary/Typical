@@ -4,7 +4,7 @@ either be provided as annotations or a function can be defined with types
 from the get-go. The following two code samples are equivalent.
 
 ```javascript
-var f = T(Number, Number, function(x) { return x+1; });
+f = T(Number, Number, function(x) { return x+1; });
 ```
 
 ```javascript
