@@ -26,3 +26,11 @@ the following forms the type of a function from `Number` to `String`.
 ```javascript
 var stringify = T.Type(Number, String);
 ```
+
+## Annotations
+Type annotations require that a module be defined. To do this, call `T.module`
+on the global namespace, i.e., `GLOBAL`.
+
+```javascript
+T.module(GLOBAL);
+```
