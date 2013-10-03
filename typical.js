@@ -2,7 +2,32 @@
 // serve as the type annotation, similar to Haskell arrow definitions.
 // The last argument is then the function body.
 var root;
-var T = function(/* types, fun */) {
+var T = function(fun/*, annotation*/) {
+  // form a namespace based around globals
+  T.init();
+
+  // if an array was passed, treat this as a type constructor rather
+  // than a typed *function* constructor.
+  if( typeof arguments[0] == 'object' && arguments.length == 1 ) {
+    return T.Type.apply({}, arguments[0]);
+  }
+
+  // find function name by value and replace it with a typed form
+  var name = Object.keys(root).filter(function(k){return root[k]==fun})[0];
+  root[name] = T.build.apply({}, toArray(arguments).slice(1).concat(fun));
+};
+
+T.init = function() {
+  // attempt browser globals, fallback to node
+  try {
+    root = window;
+  } catch(err) {
+    root = GLOBAL;
+  }
+};
+
+T.build = function(/* types, fun */) {
+  // form a strictly typed function
   var args = toArray(arguments),
       fun = last(args),
       lead = args.slice(0,-1),
@@ -170,16 +195,6 @@ T.Type = function(args) {
   if( !(this instanceof T.Type) ) return new T.Type(toArray(arguments));
   this.ret = last(args);
   this.args = args.slice(0, -1);    
-};
-
-T.annotate = function(fun, annotation) {
-  // find object name by value
-  var name = Object.keys(root).filter(function(k){return root[k]==fun})[0];
-  root[name] = T.apply({}, toArray(arguments).slice(1).concat(fun));
-};
-
-T.module = function(env) {
-  root = env; 
 };
 
 module.exports = T; 
