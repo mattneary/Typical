@@ -18,6 +18,9 @@ var T = function(fun/*, annotation*/) {
 };
 
 T.init = function() {
+  // if a root element has been set, return
+  if( root ) return;
+
   // attempt browser globals, fallback to node
   try {
     root = window;
