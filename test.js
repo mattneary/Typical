@@ -1,4 +1,4 @@
-T = require('./typical');
+T = require('./typical')
 
 // typed function definition
 map = T(T.Type(Number, Number), [Number], [Number], function(f, xs) { return xs.map(f) })
