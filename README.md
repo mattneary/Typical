@@ -4,12 +4,12 @@ either be provided as annotations or a function can be defined with types
 from the get-go. The following two code samples are equivalent.
 
 ```javascript
-f = T(Number, Number, function(x) { return x+1; });
+f = T(Number, Number, function(x) { return x+1 })
 ```
 
 ```javascript
-f = function(x) { return x+1; };
-T.annotate(f, Number, Number);
+f = function(x) { return x+1 }
+T.annotate(f, Number, Number)
 ```
 
 ## Types
@@ -24,7 +24,7 @@ The function `T.Type` constructs a function type-class. For example,
 the following forms the type of a function from `Number` to `String`.
 
 ```javascript
-var stringify = T.Type(Number, String);
+stringify = T.Type(Number, String)
 ```
 
 ## Annotations
@@ -32,5 +32,5 @@ Type annotations require that a module be defined. To do this, call `T.module`
 on the global namespace, i.e., `GLOBAL`.
 
 ```javascript
-T.module(GLOBAL);
+T.module(GLOBAL)
 ```
