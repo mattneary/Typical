@@ -6,7 +6,6 @@ try {
   // no require necessary in browser
   assert = render;
 }
-T()
 
 // typed function definition
 map = T(function(f, xs) { return xs.map(f) }, T([Number, Number]), [Number], [Number])

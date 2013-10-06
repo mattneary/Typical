@@ -1,17 +1,16 @@
-var root;
-
-// the primary function, for constructing typed functions
 // T is a typed function constructor. The leading arguments
-// serve as the type annotation, similar to Haskell arrow definitions.
-// The last argument is then the function body.
+// The first argument is a function and the rest are a type
+// annotation, with the final argument being the return type.
+// A passed function is both returned in a typed form and, if
+// possible, mutated in the environment.
 var T = function(fun/*, annotation*/) {
   // form a namespace based around globals
   T.init();
 
-  if( arguments.length == 0 ) return;
-
   // if an array was passed, treat this as a type constructor rather
-  // than a typed *function* constructor.
+  // than a typed *function* constructor. That is to say, if this call
+  // was not meant to manipulate a function, simlpy return a function's
+  // type which can be used elsewhere.
   if( typeof arguments[0] == 'object' && arguments.length == 1 ) {
     return T.Type.apply({}, arguments[0]);
   }
@@ -24,18 +23,24 @@ var T = function(fun/*, annotation*/) {
     return T.build.apply({}, toArray(arguments).slice(1).concat(fun));
   }
 
-  // replace found function variable with a typed form
+  // if the function was found in the scope, mutate it.
   root[name] = T.build.apply({}, toArray(arguments).slice(1).concat(fun));
 };
 
 T.build = function(/* types, fun */) {
   // form a strictly typed function
+
+  // parse out the function, the argument types, and
+  // the return value, forming argument type checkers.
   var args = toArray(arguments),
       fun = last(args),
       lead = args.slice(0,-1),
       types = lead.slice(0,-1).map(argTypeChecker),
       retType = last(lead);
 
+  // form a wrapper of the base function which will check
+  // argument types, then fire, and then check the return
+  // type.
   var f = function(/* args */) {
     var args = toArray(arguments);
     var errors = mapcat(function(isValid) {
@@ -57,20 +62,28 @@ T.build = function(/* types, fun */) {
     return resp;
   };
 
+  // mark the function as strictly typed with a signature for
+  // its use as argument to other typed functions.
   f['typed'] = true;
   f['type'] = {
     ret: retType,
     args: lead.slice(0,-1) 
   };
   f['signature'] = T.render(lead);
+
+  // return the wrapper function
   return f;
 };  
 
 T.render = function(types) {
-  return "(" + types.slice(0, types.length-1).map(getType).map(function(x) { return x.name }).join(", ")+") -> "+getType(last(types)).name;
+  // render a signature given the types
+  var argNames = types.slice(0, types.length-1).map(getType).map(function(x) { return x.name });
+  return "(" + argNames.join(", ")+") -> "+getType(last(types)).name;
 };
 
 T.checker = function(message, fun) {
+  // a basic function for forming message-linked functions
+  // which will be used as type-checkers.
   var f = function(/* args */) {
     return fun.apply(fun, arguments);
   };
@@ -79,6 +92,8 @@ T.checker = function(message, fun) {
   return f;
 };
 
+// flag type values. void signals a lack of return value,
+// and Circular is used in recursive type definitions.
 T.void = {};
 T.Circular = {};
 
@@ -96,7 +111,11 @@ T.Or = function(args) {
   this.types = args;
 };
 
+var root;
 T.init = function() {
+  // initialize Typical to have a root scope on
+  // which all functions will be defined.
+
   // if a root element has been set, return
   if( root ) return;
 
@@ -105,8 +124,6 @@ T.init = function() {
     root = window;       
   } catch(err) {
     // a strict set of required globals
-    var keep = ["T", "console", "GLOBAL", "process", "Buffer"];
-    Object.keys(GLOBAL).forEach(function(k) { if(keep.indexOf(k) == -1) delete GLOBAL[k] })
     root = GLOBAL; 
   } 
 };
@@ -132,7 +149,7 @@ var mapcat = function(f, xs) {
     return a.concat(b);
   }, []);
 };
-var argTypeChecker = function (type, argNum) {
+var argTypeChecker = function(type, argNum) {
   // form a checker function based on the provided type.
   var checker = getType(type);
 
@@ -147,6 +164,8 @@ var argTypeChecker = function (type, argNum) {
   return T.checker(msg, checker.fun);
 };
 var getType = function(type, typeRoot) {
+  // maintain a link to the root type for Circular
+  // references.
   var isRoot = false;
   if( !typeRoot ) {
    isRoot = true;
@@ -173,6 +192,8 @@ var getType = function(type, typeRoot) {
       }
     };
   } else if( type instanceof T.Or ) {
+    // check against an algebraic type of possible
+    // types for the argument
     return {
       name: "("+type.types.map(function(x) {
         return getType(x, typeRoot).name
@@ -237,16 +258,19 @@ var getType = function(type, typeRoot) {
     };
   } else if( typeof type == 'object' ) {    
     // an object was passed. objects are duck-typed.
+
+    // render the key-pair types for use in the signature
     var valTypes = Object.keys(type).map(function(k) {
       var t = getType(type[k], typeRoot);
       t.pair = [k, getType(type[k], typeRoot).name].join(" => ");
       return t;
     });
+
     return {
       name: "{ "+valTypes.map(function(x){ return x.pair; }).join(", ")+" }",
       fun: function(xs) {
-        if( typeof xs != 'object' ) return false;
-	var passed = !xs.map;
+        if( typeof xs != 'object' || xs.map ) return false;
+	var passed = true;
 	for( var k in xs ) {
 	  passed = passed && getType(type[k], typeRoot).fun(xs[k]);
 	}
@@ -256,6 +280,7 @@ var getType = function(type, typeRoot) {
   }
 };
 
+// export the Typical function if in node
 try {
   module.exports = T; 
 } catch(err) {
