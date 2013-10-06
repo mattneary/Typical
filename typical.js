@@ -85,6 +85,12 @@ T.Type = function(args) {
   this.args = args.slice(0, -1);    
 };
 
+T.Or = function(args) {
+  // form an algebraic type combining all of the provided types
+  if( !(this instanceof T.Or) ) return new T.Or(toArray(arguments));
+  this.types = args;
+};
+
 T.init = function() {
   // if a root element has been set, return
   if( root ) return;
@@ -157,6 +163,19 @@ var getType = function(type, typeRoot) {
 	return x.typed && goodRet && goodArgs;
       }
     };
+  } else if( type instanceof T.Or ) {
+    return {
+      name: "("+type.types.map(function(x) {
+        return getType(x, typeRoot).name
+      }).join(" | ")+")",
+      fun: function(x) {
+        return type.types.map(function(t) {
+	  return getType(t, typeRoot).fun(x);
+	}).reduce(function(a, b) {
+	  return a || b;
+	}, false);
+      }
+    };
   } else if( type == T.void ) {
     // the void response type was passed
     return {
@@ -201,6 +220,7 @@ var getType = function(type, typeRoot) {
     return {
       name: "["+getType(type[0], typeRoot).name+"]",
       fun: function(xs) {
+        if( typeof xs != 'object' || !xs.map ) return false;
 	return xs.map(getType(type[0], typeRoot).fun).reduce(function(a,b) {
 	  return a && b;
 	}, true);
@@ -216,6 +236,7 @@ var getType = function(type, typeRoot) {
     return {
       name: "{ "+valTypes.map(function(x){ return x.pair; }).join(", ")+" }",
       fun: function(xs) {
+        if( typeof xs != 'object' ) return false;
 	var passed = !xs.map;
 	for( var k in xs ) {
 	  passed = passed && getType(type[k], typeRoot).fun(xs[k]);
