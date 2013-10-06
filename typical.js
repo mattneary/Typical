@@ -1,12 +1,14 @@
-// T is a typed function constructor. The leading arguments
-// serve as the type annotation, similar to Haskell arrow definitions.
-// The last argument is then the function body.
 var root;
 
 // the primary function, for constructing typed functions
+// T is a typed function constructor. The leading arguments
+// serve as the type annotation, similar to Haskell arrow definitions.
+// The last argument is then the function body.
 var T = function(fun/*, annotation*/) {
   // form a namespace based around globals
   T.init();
+
+  if( arguments.length == 0 ) return;
 
   // if an array was passed, treat this as a type constructor rather
   // than a typed *function* constructor.
@@ -73,6 +75,7 @@ T.checker = function(message, fun) {
 };
 
 T.void = void 0;
+T.Circular = {};
 
 T.Type = function(args) {
   // define a function type by means of T.Type(ret, arg1, ...) with
@@ -88,10 +91,13 @@ T.init = function() {
 
   // attempt browser globals, fallback to node
   try {
-    root = window;
+    root = window;       
   } catch(err) {
-    root = GLOBAL;
-  }
+    // a strict set of required globals
+    var keep = ["T", "console", "GLOBAL", "process", "Buffer"];
+    Object.keys(GLOBAL).forEach(function(k) { if(keep.indexOf(k) == -1) delete GLOBAL[k] })
+    root = GLOBAL; 
+  } 
 };
 
 // function dependencies
@@ -129,15 +135,22 @@ var argTypeChecker = function (type, argNum) {
   // return a checker.	       
   return T.checker(msg, checker.fun);
 };
-var getType = function(type) {
+var getType = function(type, typeRoot) {
+  typeRoot = typeRoot || type;
+
   if( type instanceof T.Type ) {
     // a function type definition was passed 
     return {
-      name: '(' + type.args.map(getType).map(function(x){return x.name}).join(", ") + ') -> ' + getType(type.ret).name,
+      name: '(' + type.args.map(function(x) { 
+        return getType(x, typeRoot); 
+      }).map(function(x) {
+       return x.name;
+      }).join(", ") + ') -> ' + getType(type.ret, typeRoot).name,
       fun: function(x) {
 	var goodRet = type.ret == x.type.ret;
 	var goodArgs = type.args.map(function(t, i) {
-	    return t == x.type.args[i];
+	  // TODO: deep equality of types  
+	  return t == x.type.args[i];
 	}).reduce(function(a, b) {
 	  return a && b;	  
 	});	  
@@ -150,6 +163,13 @@ var getType = function(type) {
       name: "void",
       fun: function(x) {
 	return !existy(x);
+      }
+    };
+  } else if( type == T.Circular ) {
+    return {
+      name: '[Circular]',
+      fun: function(x) {
+        return getType(typeRoot).fun(x);
       }
     };
   } else if( typeof type == 'function' ) {
@@ -179,18 +199,18 @@ var getType = function(type) {
   } else if( typeof type == 'object' && type.map ) {
     // an array was passed
     return {
-      name: "["+getType(type[0]).name+"]",
+      name: "["+getType(type[0], typeRoot).name+"]",
       fun: function(xs) {
-	return xs.map(getType(type[0]).fun).reduce(function(a,b) {
+	return xs.map(getType(type[0], typeRoot).fun).reduce(function(a,b) {
 	  return a && b;
-	});
+	}, true);
       }
     };
   } else if( typeof type == 'object' ) {    
     // an object was passed. objects are duck-typed.
     var valTypes = Object.keys(type).map(function(k) {
-      var t = getType(type[k]);
-      t.pair = [k, getType(type[k]).name].join(" => ");
+      var t = getType(type[k], typeRoot);
+      t.pair = [k, getType(type[k], typeRoot).name].join(" => ");
       return t;
     });
     return {
@@ -198,7 +218,7 @@ var getType = function(type) {
       fun: function(xs) {
 	var passed = !xs.map;
 	for( var k in xs ) {
-	  passed = passed && getType(type[k]).fun(xs[k]);
+	  passed = passed && getType(type[k], typeRoot).fun(xs[k]);
 	}
 	return passed;
       }

@@ -1,4 +1,5 @@
 T = require('./typical')
+T()
 
 // typed function definition
 map = T(function(f, xs) { return xs.map(f) }, T([Number, Number]), [Number], [Number])
@@ -13,3 +14,6 @@ f2 = function(x) { return x+1 }
 T(f2, Number, Number)
 
 console.log(map2(f2, [1,2,3]))
+
+circleTest = T(function(x) { return 0; }, [T.Circular], Number)([[]]);
+console.log(circleTest);
