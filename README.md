@@ -16,6 +16,8 @@ f = T(function(x) { return x+1 }, Number, Number)
 Types are provided as class constructors, like `Number`, `String`, or 
 `MyClass` and derived types can be formed by passing Arrays or Hashes of
 these types. For example, `[String]` or `{name:String, age:Number}`.
+Additionally, algebraic types of the form `a | b` can be defined with 
+`T.Or(a, b, ...)`.
 
 ### Function Types
 You will, at times, wish to have a function accept another function as
@@ -48,4 +50,12 @@ T(join, [Number], [Number], T([Number, Number, Number]), [Number])
 sum = T(function(x, y) { return x + y }, Number, Number, Number)
 zipSum = function(xs, ys) { return join(xs, ys, sum) }
 T(zipSum, [Number], [Number], [Number])
+```
+
+```javascript
+linkedList = function(x) {
+  if( x.length == 0 ) return []
+  return [x[0], linkedList(x.slice(1))]
+}
+T(linkedList, [Number], [T.Or(Number, T.Circular)])
 ```
