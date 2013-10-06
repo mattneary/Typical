@@ -18,12 +18,14 @@ var T = function(fun/*, annotation*/) {
   // find function name by value
   var name = Object.keys(root).filter(function(k){ return root[k]==fun })[0];
 
+  fun['typical_name'] = name || 'anonymous';
+
   // if could not find in scope, build and return a function.
   if( !name ) {
     return T.build.apply({}, toArray(arguments).slice(1).concat(fun));
   }
 
-  // if the function was found in the scope, mutate it.
+  // if the function was found in the scope, mutate it.  
   root[name] = T.build.apply({}, toArray(arguments).slice(1).concat(fun));
 };
 
@@ -35,7 +37,7 @@ T.build = function(/* types, fun */) {
   var args = toArray(arguments),
       fun = last(args),
       lead = args.slice(0,-1),
-      types = lead.slice(0,-1).map(argTypeChecker),
+      types = lead.slice(0,-1).map(argTypeChecker(fun['typical_name'])),
       retType = last(lead);
 
   // form a wrapper of the base function which will check
@@ -54,8 +56,8 @@ T.build = function(/* types, fun */) {
 
     // verify return value type
     var resp = fun.apply({}, arguments);
-    if( !argTypeChecker(retType)(resp) ) {
-      throw new Error("Expected return value to be of type "+getType(retType).name+".")
+    if( !argTypeChecker(fun['typical_name'])(retType)(resp) ) {
+      throw new Error("Expected return value of " + fun.typical_name + " to be of type "+getType(retType).name+".")
     }
 
     // return response if all checks pass
@@ -70,6 +72,7 @@ T.build = function(/* types, fun */) {
     args: lead.slice(0,-1) 
   };
   f['signature'] = T.render(lead);
+  f['name'] = fun['typical_name'];
 
   // return the wrapper function
   return f;
@@ -149,19 +152,23 @@ var mapcat = function(f, xs) {
     return a.concat(b);
   }, []);
 };
-var argTypeChecker = function(type, argNum) {
-  // form a checker function based on the provided type.
-  var checker = getType(type);
+var argTypeChecker = function(fun) {
+  return function(type, argNum) {
+    // form a checker function based on the provided type.
+    var checker = getType(type);
 
-  // define an error to display in the case of a type error.
-  var msg = ["Expected argument at index ",
-	      argNum,
-	      " to be of type ",
-	      checker.name,
-	      "."].join("");
+    // define an error to display in the case of a type error.
+    var msg = ["Expected argument at index ",
+		argNum,
+		" of ",
+		fun,
+		" to be of type ",
+		checker.name,
+		"."].join("");
 
-  // return a checker.	       
-  return T.checker(msg, checker.fun);
+    // return a checker.	       
+    return T.checker(msg, checker.fun);
+  };
 };
 var getType = function(type, typeRoot) {
   // maintain a link to the root type for Circular
