@@ -1,3 +1,15 @@
 <ul id="out"></ul>
 <script type="text/javascript" src="typical.js"></script>
+<script>
+  var out = document.getElementById('out');
+  var render = function() {
+    var msg = [].slice.call(arguments).map(JSON.stringify).join("  ");
+    var pre = document.createElement('pre');
+    pre.innerText = msg;
+    var li = document.createElement('li');
+    li.appendChild(pre);
+    out.appendChild(li);
+    console.log.apply(console, arguments)
+  };
+</script>
 <script type="text/javascript" src="test.js"></script>
