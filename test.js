@@ -11,6 +11,7 @@ try {
       var li = document.createElement('li');
       li.appendChild(pre);
       out.appendChild(li);
+      _console.log.apply(_console, arguments)
     }
   };
 }
