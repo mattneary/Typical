@@ -251,4 +251,8 @@ var getType = function(type, typeRoot) {
   }
 };
 
-module.exports = T; 
+try {
+  module.exports = T; 
+} catch(err) {
+  // no need to export in browser
+}

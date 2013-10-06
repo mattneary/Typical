@@ -1,4 +1,19 @@
-T = require('./typical')
+try {
+  T = require('./typical')
+} catch(err) {
+  var out = document.getElementById('out');
+  var _console = console;
+  console = {
+    log: function() {
+      var msg = [].slice.call(arguments).map(JSON.stringify).join("  ");
+      var pre = document.createElement('pre');
+      pre.innerText = msg;
+      var li = document.createElement('li');
+      li.appendChild(pre);
+      out.appendChild(li);
+    }
+  };
+}
 T()
 
 // typed function definition
