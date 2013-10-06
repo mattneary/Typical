@@ -18,7 +18,7 @@ var T = function(fun/*, annotation*/) {
   // find function name by value
   var name = Object.keys(root).filter(function(k){ return root[k]==fun })[0];
 
-  fun['typical_name'] = name || 'anonymous';
+  fun['typical_name'] = name || fun.name;
 
   // if could not find in scope, build and return a function.
   if( !name ) {
