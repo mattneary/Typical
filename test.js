@@ -24,8 +24,9 @@ algebraic = T(function(x) { return typeof x == 'number' ? x : parseInt(x); }, T.
 console.log("polymorphic functions", algebraic("3")+algebraic(3))
 
 // Complex circular type
+Linked = [T.Or(Number, T.Circular)]
 linkedList = T(function(x) {
   if( x.length == 0 ) return []
   return [x[0], linkedList(x.slice(1))]
-}, [Number], [T.Or(Number, T.Circular)])
+}, [Number], Linked)
 console.log("linked list", linkedList([1,2,3]))

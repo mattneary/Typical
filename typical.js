@@ -142,7 +142,11 @@ var argTypeChecker = function (type, argNum) {
   return T.checker(msg, checker.fun);
 };
 var getType = function(type, typeRoot) {
-  typeRoot = typeRoot || type;
+  var isRoot = false;
+  if( !typeRoot ) {
+   isRoot = true;
+   typeRoot = type;
+  }
 
   if( type instanceof T.Type ) {
     // a function type definition was passed 
@@ -184,7 +188,7 @@ var getType = function(type, typeRoot) {
 	return !existy(x);
       }
     };
-  } else if( type == T.Circular ) {
+  } else if( type == T.Circular || (type == typeRoot && !isRoot) ) {
     return {
       name: '[Circular]',
       fun: function(x) {
