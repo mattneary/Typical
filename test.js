@@ -37,3 +37,4 @@ linkedList = T(function(x) {
   return [x[0], linkedList(x.slice(1))]
 }, [Number], Linked)
 assert("linked list", linkedList([1,2,3]))
+console.log(linkedList.signature)

@@ -62,8 +62,13 @@ T.build = function(/* types, fun */) {
     ret: retType,
     args: lead.slice(0,-1) 
   };
+  f['signature'] = T.render(lead);
   return f;
 };  
+
+T.render = function(types) {
+  return "(" + types.slice(0, types.length-1).map(getType).map(function(x) { return x.name }).join(", ")+") -> "+getType(last(types)).name;
+};
 
 T.checker = function(message, fun) {
   var f = function(/* args */) {
@@ -74,7 +79,7 @@ T.checker = function(message, fun) {
   return f;
 };
 
-T.void = void 0;
+T.void = {};
 T.Circular = {};
 
 T.Type = function(args) {
@@ -190,7 +195,7 @@ var getType = function(type, typeRoot) {
     };
   } else if( type == T.Circular || (type == typeRoot && !isRoot) ) {
     return {
-      name: '[Circular]',
+      name: '<Circular>',
       fun: function(x) {
         return getType(typeRoot).fun(x);
       }
