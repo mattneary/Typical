@@ -15,5 +15,17 @@ T(f2, Number, Number)
 
 console.log(map2(f2, [1,2,3]))
 
-circleTest = T(function(x) { return 0; }, [T.Circular], Number)([[]]);
-console.log(circleTest);
+// Trivial circular type
+circleTest = T(function(x) { return 0; }, [T.Circular], Number)
+console.log(circleTest([[]]))
+
+// Algebraic type
+algebraic = T(function(x) { return typeof x == 'number' ? x : parseInt(x); }, T.Or(Number, String), Number)
+console.log(algebraic("3")+algebraic(3))
+
+// Complex circular type
+linkedList = T(function(x) {
+  if( x.length == 0 ) return []
+  return [x[0], linkedList(x.slice(1))]
+}, [Number], [T.Or(Number, T.Circular)])
+console.log(linkedList([1,2,3]))
