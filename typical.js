@@ -1,8 +1,8 @@
-// T is a typed function constructor. The leading arguments
-// The first argument is a function and the rest are a type
-// annotation, with the final argument being the return type.
-// A passed function is both returned in a typed form and, if
-// possible, mutated in the environment.
+// T is a typed function constructor. The first argument is a 
+// function and the rest are a type annotation, with the final 
+// argument being the return type. A passed function is both 
+// returned in a typed form and, if possible, mutated in the 
+// environment.
 var T = function(fun/*, annotation*/) {
   // form a namespace based around globals
   T.init();
