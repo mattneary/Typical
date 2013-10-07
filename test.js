@@ -37,3 +37,6 @@ linkedList = T(function(x) {
 }, [Number], Linked)
 assert("linked list", linkedList([1,2,3]))
 console.log(linkedList.signature)
+
+Cartesian = T([Number, Number])
+assert("function type as wrapper", Cartesian(function(x){return x})(1))

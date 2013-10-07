@@ -9,7 +9,7 @@ var T = function(fun/*, annotation*/) {
 
   // if an array was passed, treat this as a type constructor rather
   // than a typed *function* constructor. That is to say, if this call
-  // was not meant to manipulate a function, simlpy return a function's
+  // was not meant to manipulate a function, simply return a function's
   // type which can be used elsewhere.
   if( typeof arguments[0] == 'object' && arguments.length == 1 ) {
     return T.Type.apply({}, arguments[0]);
@@ -18,7 +18,7 @@ var T = function(fun/*, annotation*/) {
   // find function name by value
   var name = Object.keys(root).filter(function(k){ return root[k]==fun })[0];
 
-  fun['typical_name'] = name || fun.name;
+  fun['typical_name'] = name || fun.name || 'anonymous';
 
   // if could not find in scope, build and return a function.
   if( !name ) {
@@ -103,9 +103,19 @@ T.Circular = {};
 T.Type = function(args) {
   // define a function type by means of T.Type(ret, arg1, ...) with
   // each argument being a type such as Number.
-  if( !(this instanceof T.Type) ) return new T.Type(toArray(arguments));
-  this.ret = last(args);
-  this.args = args.slice(0, -1);    
+  if( !(this instanceof T.Type) ) return new T.Type(toArray(arguments));  
+
+  // make a function which will wrap in type-checking another function,
+  // and which holds onto the provided type signature.
+  var fun = function(toWrap) {
+    return T.apply({}, [toWrap].concat(args));
+  };
+  fun.ret = last(args);
+  fun.args = args.slice(0, -1);   
+
+  // make function inherit from T.Type
+  fun.__proto__ = T.Type.prototype;
+  return fun;
 };
 
 T.Or = function(args) {
