@@ -141,27 +141,6 @@ T.init = function() {
   } 
 };
 
-// function dependencies
-var existy = function(x) {
-  return typeof x != "undefined";
-};
-var toArray = function(x) {
-  var a = [];
-  for( var i = 0; i < x.length; i++ )
-    a.push(x[i]);
-  return a;
-};
-var isEmpty = function(x) {
-  return x.length == 0;
-};
-var last = function(x) {
-  return x[x.length-1];
-};
-var mapcat = function(f, xs) {
-  return xs.map(f).reduce(function(a, b) {
-    return a.concat(b);
-  }, []);
-};
 var argTypeChecker = function(fun, signature) {
   return function(type, argNum) {
     // form a checker function based on the provided type.
@@ -181,6 +160,10 @@ var argTypeChecker = function(fun, signature) {
   };
 };
 var getType = function(type, typeRoot, signature) {
+  // forms a checker for a given type, maintaining
+  // an idea of root type and function to which it
+  // belongs when recursing.
+
   // maintain a link to the root type for Circular
   // references.
   var isRoot = false;
@@ -191,7 +174,6 @@ var getType = function(type, typeRoot, signature) {
 
   if( type instanceof T.Type ) {
     // a function type definition was passed 
-    // TODO: T.Root may not yet have the right context for function arguments
     return {
       name: '(' + type.args.map(function(x) { 
         return getType(x, typeRoot, signature); 
@@ -305,6 +287,8 @@ var getType = function(type, typeRoot, signature) {
   }
 };
 var typeMatch = function(a, b, aRoot, bRoot) {
+  // Checks whether two types are equivalent, for the
+  // sake of verifying function arguments.
   var isRoot = false;
   if( !aRoot || !bRoot ) {
     isRoot = true;
@@ -312,10 +296,12 @@ var typeMatch = function(a, b, aRoot, bRoot) {
     bRoot = b;
   }
   if( a == T.Circular || b == T.Circular ) {
+    // compare the types to which circular references point
     if( a == T.Circular && b == T.Circular ) return typeMatch(aRoot, bRoot);
     else if( a == T.Circular ) return typeMatch(aRoot, b, aRoot, bRoot);
     else return typeMatch(a, bRoot, aRoot, bRoot);
   } else if( b instanceof T.Or || a instanceof T.Or ) {
+    // compare the addends of a sum type
     if( a instanceof T.Or ) {
       for( var k in a.types ) {
 	if( typeMatch(a.types[k], b) ) return true;
@@ -339,6 +325,28 @@ var typeMatch = function(a, b, aRoot, bRoot) {
   } else {
     return a == b;
   }
+};
+
+// function dependencies
+var existy = function(x) {
+  return typeof x != "undefined";
+};
+var toArray = function(x) {
+  var a = [];
+  for( var i = 0; i < x.length; i++ )
+    a.push(x[i]);
+  return a;
+};
+var isEmpty = function(x) {
+  return x.length == 0;
+};
+var last = function(x) {
+  return x[x.length-1];
+};
+var mapcat = function(f, xs) {
+  return xs.map(f).reduce(function(a, b) {
+    return a.concat(b);
+  }, []);
 };
 
 // export the Typical function if in node

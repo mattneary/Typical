@@ -12,9 +12,14 @@ f = T(function(x) { return x+1 }, Number, Number)
 ```
 
 Additionally, function types can be defined separately and then applied 
-to a function. The inability of JavaScript variable declarations to reference
+to a function. This method is appropriate for recursive function types.
+The inability of JavaScript variable declarations to reference
 themselves led `T.Root` to be implemented, a type which will refer to the 
-parent function type. This method is appropriate for recursive function types.
+parent function type. Note, also, that Typical utilizes an 
+[Isorecursive](http://en.wikipedia.org/wiki/Recursive_data_type#Isorecursive_types) 
+approach to types. That is to say that the type when not *unrolled* is
+seen as distinct from the unrolled type. This idea may give you a better 
+understanding of the use of keywords `T.Root`, and later, `T.Circular`.
 
 ```javascript
 Nary = T([Number, T.Or(Number, T.Root)])
@@ -35,11 +40,11 @@ Linked = [T.Or(Number, T.Circular)]
 ## Getting Started
 ### Types
 Types are provided as class constructors, like `Number`, `String`, or 
-`MyClass` and derived types can be formed by passing Arrays or Hashes of
-these types. For example, `[String]` or `{name:String, age:Number}`.
-Additionally, algebraic types of the form `a | b` can be defined with 
-`T.Or(a, b, ...)`. There are also special types `T.Circular` and `T.Root`
-for use in recursive types and recursive function types, respectively.
+`MyClass` and algebraic types can be formed by passing Arrays or Hashes of
+these types, for example, `[String]` or `{name:String, age:Number}`,
+by making sum types of the form `a | b` with `T.Or(a, b, ...)`. There 
+are also special types `T.Circular` and `T.Root` for use in recursive types 
+and recursive function types, respectively.
 
 ### Function Types
 You will, at times, wish to have a function accept another function as
@@ -48,7 +53,7 @@ The function `T` constructs a function type-class when passed an array. For exam
 the following forms the type of a function from `Number` to `String`.
 
 ```javascript
-stringify = T([Number, String])
+Stringify = T([Number, String])
 ```
 
 ## Examples
