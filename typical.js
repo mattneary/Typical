@@ -88,6 +88,25 @@ T.build = function(/* types, fun */) {
   return f;
 };  
 
+T.Hungarian = function(fun) {
+  var argnames = function(func) {
+    var comments = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
+    var fnStr = func.toString().replace(comments, '');
+    var result = fnStr.slice(fnStr.indexOf('(')+1, fnStr.indexOf(')')).match(/([^\s,]+)/g);
+    if(result === null)  result = [];
+    return result;
+  };
+  var parsePrefix = function(name, base) {
+    base = base || name;
+    if( name.match(/^arr/) ) return [parsePrefx(name.substr(3), base)];
+    if( name.match(/^n/) ) return Number;
+    if( name.match(/^s/) ) return String;
+    if( name.match(/^b/) ) return Boolean;
+    throw new Error("Hungarian notation could not be parsed: "+base);
+  };
+  return T.apply({}, [fun].concat(argnames(fun).map(parsePrefix).concat([parsePrefix(fun.name)])));
+};
+
 T.render = function(types) {
   // render a signature given the types
   var argNames = types.slice(0, types.length-1).map(getType).map(function(x) { return x.name });
@@ -155,7 +174,7 @@ T.init = function() {
 var argTypeChecker = function(fun, signature) {
   return function(type, argNum) {
     // form a checker function based on the provided type.
-    var checker = getType(type, type, signature);
+    var checker = getType(type, undefined, signature);
 
     // define an error to display in the case of a type error.
     var msg = ["Expected argument at index ",

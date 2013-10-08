@@ -36,8 +36,13 @@ assert("function type as wrapper", Cartesian(function(x){return x})(1))
 
 Nary = T([Number, T.Or(Number, T.Root)])
 var sum = Nary(function(x) {
-  return Nary(function(y){return y == 0 ? x : sum(x+y);})
+  return Nary(function(y){return y == 0 ? x : sum(x+y)})
 })
 assert("n-ary adder", sum(1)(2)(3)(0))
 
 assert("partial application", map(f)([1,2,3]))
+
+function sStringify(nNum) {
+  return nNum+"";
+}
+assert("hungarian notation parsing", T.Hungarian(sStringify)(0))
