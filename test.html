@@ -1,11 +1,42 @@
-<ul id="out"></ul>
+<style>
+  body {
+    background: #333;
+  }
+  h1 {
+    text-align: center;
+    margin: 0;
+  }
+  #out {
+    list-style: none;
+    padding: 0;
+    width: 400px;
+    background: #eee;
+    padding: 10px 20px;
+    position: absolute;
+    left: 50%;
+    margin-left: -220px;
+  }
+  #out pre {
+    font-family: 'Helvetica Neue';
+  }
+  .info {
+    color: #666;
+  }
+</style>
+<ul id="out">
+  <h1>Typical Tests</h2>
+</ul>
 <script type="text/javascript" src="typical.js"></script>
 <script>
   var out = document.getElementById('out');
   var render = function() {
-    var msg = [].slice.call(arguments).map(JSON.stringify).join("  ");
+    var msg = "<span class='title'>" + 
+                 arguments[0] +
+              "</span>  <span class='info'>" + 
+	        [].slice.call(arguments, 1).map(JSON.stringify).join("  ") + 
+              "</span>";
     var pre = document.createElement('pre');
-    pre.innerText = msg;
+    pre.innerHTML = msg;
     var li = document.createElement('li');
     li.appendChild(pre);
     out.appendChild(li);
