@@ -191,6 +191,7 @@ var getType = function(type, typeRoot, signature) {
 
   if( type instanceof T.Type ) {
     // a function type definition was passed 
+    // TODO: T.Root may not yet have the right context for function arguments
     return {
       name: '(' + type.args.map(function(x) { 
         return getType(x, typeRoot, signature); 

@@ -11,13 +11,35 @@ T(f, Number, Number)
 f = T(function(x) { return x+1 }, Number, Number)
 ```
 
+Additionally, function types can be defined separately and then applied 
+to a function. The inability of JavaScript variable declarations to reference
+themselves led `T.Root` to be implemented, a type which will refer to the 
+parent function type. This method is appropriate for recursive function types.
+
+```javascript
+Nary = T([Number, T.Or(Number, T.Root)])
+sum = Nary(function(x) {
+  return // ...
+})
+```
+
+Types can be primitives, constructed objects, lists, duck-typed objects 
+(dictionaries), functions, or algebraic types. Additionally, types can
+be recursive by means of the `T.Circular` type, similar to `T.Root`. 
+Recursive types are built as follows.
+
+```javascript
+Linked = [T.Or(Number, T.Circular)]
+```
+
 ## Getting Started
 ### Types
 Types are provided as class constructors, like `Number`, `String`, or 
 `MyClass` and derived types can be formed by passing Arrays or Hashes of
 these types. For example, `[String]` or `{name:String, age:Number}`.
 Additionally, algebraic types of the form `a | b` can be defined with 
-`T.Or(a, b, ...)`.
+`T.Or(a, b, ...)`. There are also special types `T.Circular` and `T.Root`
+for use in recursive types and recursive function types, respectively.
 
 ### Function Types
 You will, at times, wish to have a function accept another function as
