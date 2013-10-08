@@ -162,6 +162,19 @@ T.Data = function() {
   return T(parts.concat([Data]))(Data);
 };
 
+T.Enum = function() {
+  var parts = toArray(arguments);
+  var cons = function(data) {
+    // type-check
+    T([T.Or.apply({}, parts)].concat([T.void]))(function(){})(data);
+
+    // instantiate an instance
+    if( !(this instanceof cons) ) return new cons(data);
+    this.obj = data;
+  };
+  return cons;
+};
+
 T.render = function(types) {
   // render a signature given the types
   var argNames = types.slice(0, types.length-1).map(getType).map(function(x) { return x.name });

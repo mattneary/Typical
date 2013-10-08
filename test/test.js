@@ -56,3 +56,6 @@ assert("arg number fixing", ["1", "2", "3"].map(T(parseInt, String, Number)), [1
 assert("rest params", T.Rest(Math.max, Number, Number)(1,2,3), 3)
 
 assert("leading and rest params", T.Rest(function(a) { return a+arguments.length }, String, Number, String)("count: ", 1, 2), "count: 3")
+
+NumOrStr = T.Enum(String, Number)
+console.log(T([NumOrStr, Number])(function(x){return 1})(NumOrStr(1)))
