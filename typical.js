@@ -107,6 +107,16 @@ T.Hungarian = function(fun) {
   return T.apply({}, [fun].concat(argnames(fun).map(parsePrefix).concat([parsePrefix(fun.name)])));
 };
 
+T.Data = function() {
+  var parts = toArray(arguments);
+  function Data() {
+    var data = toArray(arguments);
+    data.__proto__ = Data.prototype;
+    return data;
+  };
+  return T(parts.concat([Data]))(Data);
+};
+
 T.render = function(types) {
   // render a signature given the types
   var argNames = types.slice(0, types.length-1).map(getType).map(function(x) { return x.name });

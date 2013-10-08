@@ -46,3 +46,6 @@ function sStringify(nNum) {
   return nNum+"";
 }
 assert("hungarian notation parsing", T.Hungarian(sStringify)(0))
+
+Person = T.Data(String, Number)
+assert("data constructors", Person("Matt", 27))
