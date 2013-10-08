@@ -1,30 +1,25 @@
-// testing
-var assert;
+// deep equality
 var eq = function(a, b) {
   if( typeof a == 'object' ) {
     if( typeof b != 'object' ) return false;
-    for( var k in a ) {
-      if( !eq(b[k], a[k]) ) {
-        return false;
-      }
-    }
-    for( var k in b ) {
-      if( !eq(b[k], a[k]) ) {
-        return false;
-      }
-    }
+    for( var k in a ) if( !eq(b[k], a[k]) ) return false;
+    for( var k in b ) if( !eq(b[k], a[k]) ) return false;
     return true;
   } else {
     return a == b;
   }
 };
+
+// if in browser, use a provided `render` function
 try {
   T = require('./typical')
   render = console.log.bind(console);
 } catch(err) {
   // no require necessary in browser
 }
-assert = function(name, val, check) {
+
+// check assertions
+var assert = function(name, val, check) {
   if( eq(val, check) ) render("PASSED", name);
   else render("FAILED", name)
 };
