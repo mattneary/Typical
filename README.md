@@ -59,6 +59,25 @@ the following forms the type of a function from `Number` to `String`.
 Stringify = T([Number, String])
 ```
 
+There are a few occasions at which varargs are appropraite, and for this reason,
+Typical makes available both `T.Vararg` and `T.Rest`. `T.Vararg` forms a null-delimited
+function of variable arity. Hence, you can maintain use of partial application.
+For example:
+
+```javascript
+maxOr3 = T.Vararg(Math.max, Number, Number)(3)
+maxOr3(1, null) // => 3
+```
+
+However, `T.Rest` is a more traditional implementation of variable arity which
+is built on top of `T.Varargs`. `T.Rest` accepts a function and its signature
+as argument, with the final argument type being carried on for the *rest* of
+the passed arguments. For example:
+
+```javascript
+T.Rest(Math.max, Number, Number)
+```
+
 ## Examples
 ```javascript
 search = function(c, ds) { 
