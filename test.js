@@ -49,3 +49,5 @@ assert("hungarian notation parsing", T.Hungarian(sStringify)(0))
 
 Person = T.Data(String, Number)
 assert("data constructors", Person("Matt", 27))
+
+assert("arg number fixing", ["1", "2", "3"].map(T(parseInt, String, Number)))

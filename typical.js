@@ -43,18 +43,22 @@ T.build = function(/* types, fun */) {
   // argument types, then fire, and then check the return
   // type.
   var f = function(/* args */) {
-    var args = toArray(arguments);
+    var _args = toArray(arguments);
 
     // if insufficient arguments were passed, partially
     // apply them.
     if( arguments.length < types.length ) {
-      return f.bind.apply(f, [{}].concat(args));
+      return f.bind.apply(f, [{}].concat(_args));
     }
 
     // NB: we do not throw an error for excessive arguments,
     //     given the throw-away arguments commonly passed to 
-    //     callbacks by built-in functions.
+    //     callbacks by built-in functions. we simply ignore them.
+    if( arguments.length > types.length ) {
+      _args = _args.slice(0, types.length);
+    }
 
+    var args = _args;
     var errors = mapcat(function(isValid) {
       var arg = args[0];
       args = args.slice(1);
@@ -65,7 +69,7 @@ T.build = function(/* types, fun */) {
       throw new Error(errors.join(", "));
 
     // verify return value type
-    var resp = fun.apply({}, arguments);
+    var resp = fun.apply({}, _args);
     if( !argTypeChecker(fun['typical_name'], lead)(retType)(resp) ) {
       throw new Error("Expected return value of " + fun.typical_name + " to be of type "+getType(retType).name+".")
     }
