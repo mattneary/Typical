@@ -44,6 +44,17 @@ T.build = function(/* types, fun */) {
   // type.
   var f = function(/* args */) {
     var args = toArray(arguments);
+
+    // if insufficient arguments were passed, partially
+    // apply them.
+    if( arguments.length < types.length ) {
+      return f.bind.apply(f, [{}].concat(args));
+    }
+
+    // NB: we do not throw an error for excessive arguments,
+    //     given the throw-away arguments commonly passed to 
+    //     callbacks by built-in functions.
+
     var errors = mapcat(function(isValid) {
       var arg = args[0];
       args = args.slice(1);
