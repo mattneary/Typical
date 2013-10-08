@@ -1,6 +1,6 @@
 // if in browser, use a provided `render` function
 try {
-  T = require('./typical')
+  T = require('../typical')
   render = console.log.bind(console);
 } catch(err) {
   // no require necessary in browser
