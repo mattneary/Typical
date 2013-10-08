@@ -55,7 +55,19 @@ T.build = function(/* types, fun */) {
     //     given the throw-away arguments commonly passed to 
     //     callbacks by built-in functions. we simply ignore them.
     if( arguments.length > types.length ) {
-      _args = _args.slice(0, types.length);
+      if( !typeRecurses(lead[lead.length-1]) ) {
+        _args = _args.slice(0, types.length);
+      } else {
+        // if we are allowing subsequent args to serve as
+	// rest args, they need to be type-checked.
+	var last = types[types.length-1];
+	types = _args.map(function(_, i) {
+	  if( types[i] ) return types[i];
+	  var dup = copy(last);
+	  dup.message = dup.message.replace(/index [0-9]+/, "index "+i);
+	  return dup;
+	});
+      }
     }
 
     var args = _args;
@@ -91,6 +103,35 @@ T.build = function(/* types, fun */) {
   // return the wrapper function
   return f;
 };  
+
+T.Vararg = function(fun, type, retType) {
+  var argType = T.Or(type, T.void);
+  var Nary = T([argType, T.Or(retType, T.Root)])
+  var Stack = T([[argType], T.Or(retType, Nary)])
+  var middle = Stack(function(xs) {
+    return Nary(function(y) {
+      var args = [].slice.call(arguments);
+      var front = args.slice(0,-1);
+      return args[args.length-1]==null ? fun.apply({}, xs.concat(front)) : middle(xs.concat(args)) 
+    })
+  })
+  return Nary(function() {
+    var args = [].slice.call(arguments);
+    var front = [].slice.call(arguments).slice(0,-1);
+    return args[args.length-1]==null ? fun.apply({}, front) : middle([].concat(args))
+  })
+};
+
+T.Rest = function(fun/*, types*/) {
+  var types = toArray(arguments).slice(1).slice(0,-1);
+  var retType = last(toArray(arguments));
+  return function() {
+    var head = toArray(arguments).slice(0, types.length-1);
+    var rest = toArray(arguments).slice(types.length-1);
+    var type = types[types.length-1];
+    return T.Vararg(fun.bind.apply(fun, [{}].concat(head)), type, retType).apply({}, rest.concat([null]));
+  };
+};
 
 T.Hungarian = function(fun) {
   var argnames = function(func) {
@@ -357,7 +398,7 @@ var typeMatch = function(a, b, aRoot, bRoot) {
       }
       return false;
     }    
-    } else if( typeof a == 'object' ) {
+  } else if( typeof a == 'object' ) {
     var passed = true;
     for( var k in a ) {
       passed = passed && typeMatch(a[k], b[k], aRoot, bRoot);
@@ -370,10 +411,21 @@ var typeMatch = function(a, b, aRoot, bRoot) {
     return a == b;
   }
 };
+var typeRecurses = function(type) {
+  if( type == T.Root ) return true;
+  if( type == T.Circular ) return true;
+  if( type instanceof T.Or ) {
+    for( var k in type.types ) {
+      if( typeRecurses(type.types[k]) ) return true;
+    }
+    return false;
+  }
+  return false;
+};
 
 // function dependencies
 var existy = function(x) {
-  return typeof x != "undefined";
+  return typeof x != "undefined" && x != null;
 };
 var toArray = function(x) {
   var a = [];
@@ -391,6 +443,17 @@ var mapcat = function(f, xs) {
   return xs.map(f).reduce(function(a, b) {
     return a.concat(b);
   }, []);
+};
+var copy = function(obj) {
+  var a;
+  if( typeof obj == 'function' ) {
+    a = function(){return obj.apply({}, arguments)};
+  } else {
+    a = {};
+  }
+  for( var k in obj ) a[k] = obj[k];
+  a.__proto__ = obj.__proto__;
+  return a;
 };
 
 // export the Typical function if in node
