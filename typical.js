@@ -200,8 +200,8 @@ var getType = function(type, typeRoot) {
       fun: function(x) {
 	var goodRet = type.ret == x.type.ret;
 	var goodArgs = type.args.map(function(t, i) {
-	  // TODO: deep equality of types  
-	  return t == x.type.args[i];
+	  // TODO: allow for recursive function type definitions
+	  return typeMatch(t, x.type.args[i]);
 	}).reduce(function(a, b) {
 	  return a && b;	  
 	});	  
@@ -294,6 +294,36 @@ var getType = function(type, typeRoot) {
 	return passed;
       }
     };
+  }
+};
+var typeMatch = function(a, b, aRoot, bRoot) {
+  var isRoot = false;
+  if( !aRoot || !bRoot ) {
+    isRoot = true;
+    aRoot = a;
+    bRoot = b;
+  }
+  if( typeof a == 'object' && a.map ) {
+    return a.map(function(ai, i) {
+      return typeMatch(ai, b[i], aRoot, bRoot);
+    }).reduce(function(a,b) {
+      return a && b;
+    }, true);
+  } else if( typeof a == 'object' ) {
+    var passed = true;
+    for( var k in a ) {
+      passed = passed && typeMatch(a[k], b[k], aRoot, bRoot);
+    }
+    for( var k in b ) {
+      passed = passed && typeMatch(a[k], b[k], aRoot, bRoot);
+    }
+    return passed;
+  } else if( a == T.Circular || b == T.Circular ) {
+    if( a == T.Circular && b == T.Circular ) return typeMatch(aRoot, bRoot);
+    else if( a == T.Circular ) return typeMatch(aRoot, b, aRoot, bRoot);
+    else return typeMatch(a, bRoot, aRoot, bRoot);
+  } else {
+    return a == b;
   }
 };
 
