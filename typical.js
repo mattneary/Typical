@@ -37,9 +37,8 @@ T.build = function(/* types, fun */) {
   var args = toArray(arguments),
       fun = last(args),
       lead = args.slice(0,-1),
-      types = lead.slice(0,-1).map(argTypeChecker(fun['typical_name'])),
+      types = lead.slice(0,-1).map(argTypeChecker(fun['typical_name'], lead)),
       retType = last(lead);
-
   // form a wrapper of the base function which will check
   // argument types, then fire, and then check the return
   // type.
@@ -56,7 +55,7 @@ T.build = function(/* types, fun */) {
 
     // verify return value type
     var resp = fun.apply({}, arguments);
-    if( !argTypeChecker(fun['typical_name'])(retType)(resp) ) {
+    if( !argTypeChecker(fun['typical_name'], lead)(retType)(resp) ) {
       throw new Error("Expected return value of " + fun.typical_name + " to be of type "+getType(retType).name+".")
     }
 
@@ -69,7 +68,7 @@ T.build = function(/* types, fun */) {
   f['typed'] = true;
   f['type'] = {
     ret: retType,
-    args: lead.slice(0,-1) 
+    args: lead.slice(0,-1)
   };
   f['signature'] = T.render(lead);
   f['name'] = fun['typical_name'];
@@ -99,6 +98,7 @@ T.checker = function(message, fun) {
 // and Circular is used in recursive type definitions.
 T.void = {};
 T.Circular = {};
+T.Root = {};
 
 T.Type = function(args) {
   // define a function type by means of T.Type(ret, arg1, ...) with
@@ -162,10 +162,10 @@ var mapcat = function(f, xs) {
     return a.concat(b);
   }, []);
 };
-var argTypeChecker = function(fun) {
+var argTypeChecker = function(fun, signature) {
   return function(type, argNum) {
     // form a checker function based on the provided type.
-    var checker = getType(type);
+    var checker = getType(type, type, signature);
 
     // define an error to display in the case of a type error.
     var msg = ["Expected argument at index ",
@@ -180,7 +180,7 @@ var argTypeChecker = function(fun) {
     return T.checker(msg, checker.fun);
   };
 };
-var getType = function(type, typeRoot) {
+var getType = function(type, typeRoot, signature) {
   // maintain a link to the root type for Circular
   // references.
   var isRoot = false;
@@ -193,19 +193,19 @@ var getType = function(type, typeRoot) {
     // a function type definition was passed 
     return {
       name: '(' + type.args.map(function(x) { 
-        return getType(x, typeRoot); 
+        return getType(x, typeRoot, signature); 
       }).map(function(x) {
        return x.name;
-      }).join(", ") + ') -> ' + getType(type.ret, typeRoot).name,
+      }).join(", ") + ') -> ' + getType(type.ret, typeRoot, signature).name,
       fun: function(x) {
-	var goodRet = type.ret == x.type.ret;
-	var goodArgs = type.args.map(function(t, i) {
-	  // TODO: allow for recursive function type definitions
-	  return typeMatch(t, x.type.args[i]);
-	}).reduce(function(a, b) {
-	  return a && b;	  
-	});	  
-	return x.typed && goodRet && goodArgs;
+        // check that the function is typed and that the return type matches
+	if( !x.typed || !typeMatch(type.ret, x.type.ret)) return false;
+
+        var passed = true;
+	for( var k in type.args ) {
+          if( !typeMatch(type.args[k], x.type.args[k]) ) return false;
+	}
+	return true;
       }
     };
   } else if( type instanceof T.Or ) {
@@ -213,14 +213,14 @@ var getType = function(type, typeRoot) {
     // types for the argument
     return {
       name: "("+type.types.map(function(x) {
-        return getType(x, typeRoot).name
+        return getType(x, typeRoot, signature).name
       }).join(" | ")+")",
       fun: function(x) {
-        return type.types.map(function(t) {
-	  return getType(t, typeRoot).fun(x);
-	}).reduce(function(a, b) {
-	  return a || b;
-	}, false);
+        var passed = true;
+        for( var k in type.types ) {
+          if( getType(type.types[k], typeRoot, signature).fun(x) ) return true;
+	}
+        return false;
       }
     };
   } else if( type == T.void ) {
@@ -235,10 +235,17 @@ var getType = function(type, typeRoot) {
     return {
       name: '<Circular>',
       fun: function(x) {
-        return getType(typeRoot).fun(x);
+        return getType(typeRoot, undefined, signature).fun(x);
       }
     };
-  } else if( typeof type == 'function' ) {
+  } else if( type == T.Root ) {
+    return {
+      name: '<Root>',
+      fun: function(x) {
+        return getType(T(signature), typeRoot, signature).fun(x);
+      }
+    };
+  }  else if( typeof type == 'function' ) {
     // a constructor was passed
     if( type == Number ) {
       return {
@@ -265,10 +272,10 @@ var getType = function(type, typeRoot) {
   } else if( typeof type == 'object' && type.map ) {
     // an array was passed
     return {
-      name: "["+getType(type[0], typeRoot).name+"]",
+      name: "["+getType(type[0], typeRoot, signature).name+"]",
       fun: function(xs) {
         if( typeof xs != 'object' || !xs.map ) return false;
-	return xs.map(getType(type[0], typeRoot).fun).reduce(function(a,b) {
+	return xs.map(getType(type[0], typeRoot, signature).fun).reduce(function(a,b) {
 	  return a && b;
 	}, true);
       }
@@ -278,8 +285,8 @@ var getType = function(type, typeRoot) {
 
     // render the key-pair types for use in the signature
     var valTypes = Object.keys(type).map(function(k) {
-      var t = getType(type[k], typeRoot);
-      t.pair = [k, getType(type[k], typeRoot).name].join(" => ");
+      var t = getType(type[k], typeRoot, signature);
+      t.pair = [k, getType(type[k], typeRoot, signature).name].join(" => ");
       return t;
     });
 
@@ -289,7 +296,7 @@ var getType = function(type, typeRoot) {
         if( typeof xs != 'object' || xs.map ) return false;
 	var passed = true;
 	for( var k in xs ) {
-	  passed = passed && getType(type[k], typeRoot).fun(xs[k]);
+	  passed = passed && getType(type[k], typeRoot, signature).fun(xs[k]);
 	}
 	return passed;
       }
@@ -303,13 +310,23 @@ var typeMatch = function(a, b, aRoot, bRoot) {
     aRoot = a;
     bRoot = b;
   }
-  if( typeof a == 'object' && a.map ) {
-    return a.map(function(ai, i) {
-      return typeMatch(ai, b[i], aRoot, bRoot);
-    }).reduce(function(a,b) {
-      return a && b;
-    }, true);
-  } else if( typeof a == 'object' ) {
+  if( a == T.Circular || b == T.Circular ) {
+    if( a == T.Circular && b == T.Circular ) return typeMatch(aRoot, bRoot);
+    else if( a == T.Circular ) return typeMatch(aRoot, b, aRoot, bRoot);
+    else return typeMatch(a, bRoot, aRoot, bRoot);
+  } else if( b instanceof T.Or || a instanceof T.Or ) {
+    if( a instanceof T.Or ) {
+      for( var k in a.types ) {
+	if( typeMatch(a.types[k], b) ) return true;
+      }
+      return false;
+    } else if( b instanceof T.Or ) {
+      for( var k in b.types ) {
+	if( typeMatch(b.types[k], a) ) return true;
+      }
+      return false;
+    }    
+    } else if( typeof a == 'object' ) {
     var passed = true;
     for( var k in a ) {
       passed = passed && typeMatch(a[k], b[k], aRoot, bRoot);
@@ -318,10 +335,6 @@ var typeMatch = function(a, b, aRoot, bRoot) {
       passed = passed && typeMatch(a[k], b[k], aRoot, bRoot);
     }
     return passed;
-  } else if( a == T.Circular || b == T.Circular ) {
-    if( a == T.Circular && b == T.Circular ) return typeMatch(aRoot, bRoot);
-    else if( a == T.Circular ) return typeMatch(aRoot, b, aRoot, bRoot);
-    else return typeMatch(a, bRoot, aRoot, bRoot);
   } else {
     return a == b;
   }

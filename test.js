@@ -40,3 +40,9 @@ console.log(linkedList.signature)
 
 Cartesian = T([Number, Number])
 assert("function type as wrapper", Cartesian(function(x){return x})(1))
+
+Nary = T([Number, T.Or(Number, T.Root)])
+var sum = Nary(function(x) {
+  return Nary(function(y){return y == 0 ? x : sum(x+y);})
+})
+assert("n-ary adder", sum(1)(2)(3)(0))
