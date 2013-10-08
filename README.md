@@ -84,7 +84,7 @@ T(linkedList, [Number], [T.Or(Number, T.Circular)])
 
 ```javascript
 NaryAdder = T([Number, T.Or(Number, T.Root)])
-var sum = Nary(function(x) {
-  return Nary(function(y){return y == 0 ? x : sum(x+y);})
+var sum = NaryAdder(function(x) {
+  return NaryAdder(function(y){return y == 0 ? x : sum(x+y);})
 })
 ```
