@@ -37,6 +37,9 @@ Recursive types are built as follows.
 Linked = [T.Or(Number, T.Circular)]
 ```
 
+Note that all functions will be partially applied if receiving less than
+the expected number of arguments.
+
 ## Getting Started
 ### Types
 Types are provided as class constructors, like `Number`, `String`, or 
