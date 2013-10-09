@@ -186,7 +186,9 @@ T.Data = function() {
     var resp = Data.apply({}, arguments);
     for( var k in parts ) {
       var type = getType(parts[k], cons.root);
-      if( !type.fun(arguments[k]) ) throw new Error("Data constructor expected argument at index "+k+" to be of type "+type.name+".");      
+      if( !type.fun(arguments[k]) ) {
+        throw new Error("Data constructor expected argument at index "+k+" to be of type "+type.name+".");   
+      }
     }
     resp.__proto__ = cons.prototype;
     return resp;
@@ -194,6 +196,10 @@ T.Data = function() {
   cons.__proto__ = T.Data.prototype;
   cons.types = parts;
   return cons;
+};
+
+T.unbox = function(x) {
+  return x[0];
 };
 
 T.Enum = function() {
@@ -237,12 +243,13 @@ T.Match = function(algebraic) {
   // possibilities of a sum type.
   
   var args = toArray(arguments).slice(1);
-  var unbox = function(item, index) {
-    if( algebraic[index] instanceof T.Enum ) return item[0]
+  var unbox = function(type, item, index) {
+    if( algebraic[index] instanceof T.Enum
+        && !(type instanceof T.Data) ) return T.unbox(item);
     else return item;
   };
   var verify = function(type, item, index) {    
-    return getType(type).fun(unbox(item, index));
+    return getType(type).fun(unbox(type, item, index));
   };
   var attempt = function(type, fun, args) {
     if( args.length != type.length ) return false;
@@ -251,7 +258,11 @@ T.Match = function(algebraic) {
       if( !verify(type[k], args[k], index) ) return false;
       index += 1;
     }
-    return { resp: fun.apply({}, args.map(unbox)) };
+    return {
+      resp: fun.apply({}, args.map(function(x, i) {
+        return unbox(type[i], x, i)
+      }))
+    };
   };
   return function() {
     for( var i = 0; i < args.length; i += 2 ) {

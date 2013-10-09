@@ -45,7 +45,9 @@ assert("arg number fixing", ["1", "2", "3"].map(T(parseInt, String, Number)), [1
 
 assert("rest params", T.Rest(Math.max, Number, Number)(1,2,3), 3)
 
-assert("leading and rest params", T.Rest(function(a) { return a+arguments.length }, String, Number, String)("count: ", 1, 2), "count: 3")
+assert("leading and rest params", T.Rest(function(a) {
+  return a+arguments.length
+}, String, Number, String)("count: ", 1, 2), "count: 3")
 
 NumOrStr = T.Enum(T.Data("Num", Number), T.Data("Str", String))
 assert("enumerable types", T([NumOrStr, Number])(function(x){return 1})(T.Data("Num")(1)), 1)
@@ -61,10 +63,10 @@ assert("inline data labeling", T([Street, Number])(function(){
   return 1
 })(T.Data("Home")(27, T.Data("Empty")())), 1)
 
-Node = T.Enum(T.Data("Node", Number, T.Circular), T.Data("Empty", T.void))
+LinkedList = T.Enum(T.Data("Node", Number, T.Circular), T.Data("Empty", T.void))
 function lisp(x) {
-  if( x.length == 0 ) return T.Data("Empty")(null)
+  if( x.length == 0 ) return T.Data("Empty")()
   return T.Data("Node")(x[0], lisp(x.slice(1)))
 }
-T(lisp, [Number], Node)
-assert("linked list", lisp([1,2,3]), [1,[2,[3,[null]]]])
+T(lisp, [Number], LinkedList)
+assert("linked list", lisp([1,2,3]), [1,[2,[3,[undefined]]]])
