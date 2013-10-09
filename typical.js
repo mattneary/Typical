@@ -71,10 +71,15 @@ T.build = function(/* types, fun */) {
     }
 
     var args = _args;
-    var errors = mapcat(function(isValid) {
+    var errors = mapcat(function(isValid, index) {
       var arg = args[0];
       args = args.slice(1);
-      return isValid(arg) ? [] : [isValid.message];
+      var matched = isValid(arg);
+      if( !matched && typeof arg == 'function' ) {
+        _args[index] = lead[index](_args[index]);
+        matched = true;
+      }
+      return matched ? [] : [isValid.message];
     }, types);    
 
     if (!isEmpty(errors)) {

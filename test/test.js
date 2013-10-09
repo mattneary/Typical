@@ -15,9 +15,7 @@ assert("inline typing", map(f, [1,2,3]), [2,3,4])
 
 map2 = function(f, xs) { return xs.map(f) }
 T(map2, T([Number, Number]), [Number], [Number])
-f2 = function(x) { return x+1 }
-T(f2, Number, Number)
-assert("type annotations", map2(f2, [1,2,3]), [2,3,4])
+assert("type annotations and on the fly lambda typing", map2(function(x){return x+1}, [1,2,3]), [2,3,4])
 
 circleTest = T(function(x) { return 0; }, [T.Circular], Number)
 assert("recursive types", circleTest([[]]), 0)
