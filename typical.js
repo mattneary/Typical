@@ -85,7 +85,10 @@ T.build = function(/* types, fun */) {
     // verify return value type
     var resp = fun.apply({}, _args);
     if( !argTypeChecker(fun['typical_name'], lead)(retType)(resp) ) {
-      throw new Error("Expected return value of " + fun.typical_name + " to be of type "+getType(retType).name+".")
+      throw new Error(["Expected return value of ", 
+                       fun.typical_name,
+                       " to be of type ",
+                       getType(retType).name+"."].join(""))
     }
 
     // return response if all checks pass
@@ -116,13 +119,17 @@ T.Vararg = function(fun, type, retType) {
     return Nary(function(y) {
       var args = [].slice.call(arguments);
       var front = args.slice(0,-1);
-      return args[args.length-1]==null ? fun.apply({}, xs.concat(front)) : middle(xs.concat(args)) 
+      return args[args.length-1]==null ? 
+             fun.apply({}, xs.concat(front)) :
+             middle(xs.concat(args)) 
     })
   })
   return Nary(function() {
     var args = [].slice.call(arguments);
     var front = [].slice.call(arguments).slice(0,-1);
-    return args[args.length-1]==null ? fun.apply({}, front) : middle([].concat(args))
+    return args[args.length-1]==null ?
+           fun.apply({}, front) :
+           middle([].concat(args))
   })
 };
 
@@ -137,7 +144,8 @@ T.Rest = function(fun/*, types*/) {
     var head = toArray(arguments).slice(0, types.length-1);
     var rest = toArray(arguments).slice(types.length-1);
     var type = types[types.length-1];
-    return T.Vararg(fun.bind.apply(fun, [{}].concat(head)), type, retType).apply({}, rest.concat([null]));
+    var bound = fun.bind.apply(fun, [{}].concat(head));
+    return T.Vararg(bound, type, retType).apply({}, rest.concat([null]));
   };
 };
 
@@ -147,7 +155,8 @@ T.Hungarian = function(fun) {
   var argnames = function(func) {
     var comments = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
     var fnStr = func.toString().replace(comments, '');
-    var result = fnStr.slice(fnStr.indexOf('(')+1, fnStr.indexOf(')')).match(/([^\s,]+)/g);
+    var parened = fnStr.slice(fnStr.indexOf('(')+1, fnStr.indexOf(')'));
+    var result = parened.match(/([^\s,]+)/g);
     if(result === null)  result = [];
     return result;
   };
@@ -159,7 +168,8 @@ T.Hungarian = function(fun) {
     if( name.match(/^b/) ) return Boolean;
     throw new Error("Hungarian notation could not be parsed: "+base);
   };
-  return T.apply({}, [fun].concat(argnames(fun).map(parsePrefix).concat([parsePrefix(fun.name)])));
+  var types = argnames(fun).map(parsePrefix);
+  return T.apply({}, [fun].concat(types.concat([parsePrefix(fun.name)])));
 };
 
 var datas = {};
@@ -187,7 +197,9 @@ T.Data = function() {
     for( var k in parts ) {
       var type = getType(parts[k], cons.root);
       if( !type.fun(arguments[k]) ) {
-        throw new Error("Data constructor expected argument at index "+k+" to be of type "+type.name+".");   
+        throw new Error(["Data constructor expected argument at index ",
+                         k + " to be of type ",
+                         type.name+"."].join(""));   
       }
     }
     resp.__proto__ = cons.prototype;
@@ -208,7 +220,9 @@ T.Enum = function() {
   // recursive types.
   var parts = toArray(arguments);
   for( var k in parts ) {
-    if( !(parts[k] instanceof T.Data) ) throw new Error("Enumerable types must be data constructors.");
+    if( !(parts[k] instanceof T.Data) ) {
+      throw new Error("Enumerable types must be data constructors.");
+    }
   }
   var cons = function(data) {
     // type-check
@@ -273,7 +287,8 @@ T.Match = function(algebraic) {
         resp = resp.resp;
 	var retType = getType(last(algebraic));
 	if( !retType.fun(resp) ) {
-	  throw new Error("Expected return type of pattern to be "+retType.name+".");
+	  throw new Error(["Expected return type of pattern to be ",
+                           retType.name+"."].join(""));
 	}
         return resp;
       }
@@ -284,7 +299,8 @@ T.Match = function(algebraic) {
 
 T.render = function(types) {
   // render a signature given the types
-  var argNames = types.slice(0, types.length-1).map(getType).map(function(x) { return x.name });
+  var args = types.slice(0, types.length-1).map(getType);
+  var argNames = args.map(function(x) { return x.name });
   return "(" + argNames.join(", ")+") -> "+getType(last(types)).name;
 };
 
@@ -409,7 +425,9 @@ var getType = function(type, typeRoot, signature) {
       }).join(" | ")+")",
       fun: function(x) {
         for( var k in type.types ) {
-          if( getType(type.types[k], typeRoot, signature).fun(x) ) return true;
+          if( getType(type.types[k], typeRoot, signature).fun(x) ) {
+	    return true;
+	  }
 	}
         return false;
       }
@@ -421,14 +439,18 @@ var getType = function(type, typeRoot, signature) {
       }).join(" | ")+")",
       fun: function(x) {
         for( var k in type.types ) {
-          if( getType(type.types[k], typeRoot, signature).fun(x) ) return true;
+          if( getType(type.types[k], typeRoot, signature).fun(x) ) {
+            return true;
+          }
 	}
         return x instanceof type;  
       }
     }
   } else if( type instanceof T.Data ) {
     return {
-      name: "<Data: "+type.types.map(function(x){return getType(x, typeRoot, signature).name}).join(", ")+">",
+      name: "<Data: "+type.types.map(function(x){
+        return getType(x, typeRoot, signature).name
+      }).join(", ")+">",
       fun: function(x) {
         if( typeof x != 'object' || !existy(x) ) return false;
 	// accept data constructed with the data-constructor
@@ -487,8 +509,11 @@ var getType = function(type, typeRoot, signature) {
     return {
       name: "["+getType(type[0], typeRoot, signature).name+"]",
       fun: function(xs) {
-        if( typeof xs != 'object' || !existy(xs) || !xs.map ) return false;
-	return xs.map(getType(type[0], typeRoot, signature).fun).reduce(function(a,b) {
+        if( typeof xs != 'object' || !existy(xs) || !xs.map ) {
+          return false;
+	}
+	var check = getType(type[0], typeRoot, signature).fun;
+	return xs.map(check).reduce(function(a,b) {
 	  return a && b;
 	}, true);
       }
@@ -527,8 +552,12 @@ var typeMatch = function(a, b, aRoot, bRoot) {
   }
   if( a == T.Circular || b == T.Circular ) {
     // compare the types to which circular references point
-    if( a == T.Circular && b == T.Circular ) return typeMatch(aRoot, bRoot);
-    else if( a == T.Circular ) return typeMatch(aRoot, b, aRoot, bRoot);
+    if( a == T.Circular && b == T.Circular ) {
+      return typeMatch(aRoot, bRoot);
+    }
+    else if( a == T.Circular ) {
+      return typeMatch(aRoot, b, aRoot, bRoot);
+    }
     else return typeMatch(a, bRoot, aRoot, bRoot);
   } else if( b instanceof T.Or || a instanceof T.Or ) {
     // compare the addends of a sum type
