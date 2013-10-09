@@ -382,6 +382,9 @@ var getType = function(type, typeRoot, signature) {
     return {
       name: "<Enum>",
       fun: function(x) {
+        for( var k in type.types ) {
+          if( getType(type.types[k], typeRoot, signature).fun(x) ) return true;
+	}
         return x instanceof type;  
       }
     }

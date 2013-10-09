@@ -62,16 +62,12 @@ assert("pattern matching of sum types", msg(NumOrStr("1"), 1), 2)
 Street = T.Enum(T.Data("Home", Number, T.Circular), T.void)
 assert("inline data labeling", T([Street, Number])(function(){return 1})(Street(T.Data("Home")(27, Street(null)))), 1)
 
-Node = T.Enum(T.Data("Node", Number, T.Circular), T.Data("Empty", Number))
-// TODO: an enumerable should be able to accept any of its data-types as instances...
+Node = T.Enum(T.Data("Node", Number, T.Circular), T.Data("Empty", T.void))
 function lisp(x) {
   if( x.length == 0 ) {
-    // ...the `Node` should not be necessary
-    return Node(T.Data("Empty")(0))
+    return T.Data("Empty")(null)
   }
-  return Node(T.Data("Node")(x[0], lisp(x.slice(1))))
+  return T.Data("Node")(x[0], lisp(x.slice(1)))
 }
 T(lisp, [Number], Node)
-// TODO: boxing of enumerables is really ugly. what is the right way
-//       of doing this?
-assert("linked list", lisp([1,2,3]), [[1,[[2,[[3,[[0]]]]]]]])
+assert("linked list", lisp([1,2,3]), [1,[2,[3,[null]]]])
