@@ -14,7 +14,7 @@ like:
 Error: Expected argument at index 0 of anonymous to be of type Number.
 ```
 
-An additionaly benefit of typed functions is that they get partial application
+An additional benefit of typed functions is that they get partial application
 for free. For example:
 
 ```javascript
@@ -33,7 +33,13 @@ Types are provided as class constructors, like `Number`, `String`, or
 Arrays or Hashes of these types, for example, `[String]` or `{name:String, age:Number}`,
 or by making sum types of the form `a | b` with `T.Enum(a, b, ...)`. Recursive
 types can be defined using `T.Circular` and functions without return values
-can be defined using `T.void`.
+can be defined using `T.void`. Here's how derived types can be used:
+
+```javascript
+fold = T(function(f, xs) {
+  return xs.reduce(f)
+}, T([Number, Number, Number]), [Number], Number)
+```
 
 ### Algebraic Types
 Typical supports product and sum types, by means of `T.Data` and `T.Enum`,
@@ -78,13 +84,13 @@ method delegation.
 
 ```javascript
 num = T.Match([NumOrStr, Number, Number],
-              [String, Number], T(function(x, y) { return parseInt(x)+y }, String, Number, Number),
-              [Number, Number], T(function(x, y) { return x+y }, Number, Number, Number))
+              [String, Number], function(x, y) { return parseInt(x)+y },
+              [Number, Number], function(x, y) { return x+y })
 ```	      
 
 
 ### Function Types
-You will, at times, wish to have a function accept another function as
+You will, inevitably, wish to have a function accept another function as
 argument. In this case, you will need a means of defining a function's type.
 The function `T` constructs a function type-class when passed an array. For example,
 the following forms the type of a function from `Number` to `String`.
