@@ -13,6 +13,6 @@ var eq = function(a, b) {
 module.exports = function(render) {
   return function(name, val, check) {
     if( eq(val, check) ) render("PASSED", name);
-    else render("FAILED", name)
+    else render("*FAIL*", name)
   };
 };

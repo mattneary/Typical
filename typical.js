@@ -380,7 +380,9 @@ var getType = function(type, typeRoot, signature) {
     };
   } else if( type instanceof T.Enum ) {
     return {
-      name: "<Enum>",
+      name: "("+type.types.map(function(x) {
+        return getType(x, typeRoot, signature).name
+      }).join(" | ")+")",
       fun: function(x) {
         for( var k in type.types ) {
           if( getType(type.types[k], typeRoot, signature).fun(x) ) return true;

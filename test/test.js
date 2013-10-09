@@ -22,13 +22,13 @@ assert("type annotations", map2(f2, [1,2,3]), [2,3,4])
 circleTest = T(function(x) { return 0; }, [T.Circular], Number)
 assert("recursive types", circleTest([[]]), 0)
 
-algebraic = T(function(x) { return typeof x == 'number' ? x : parseInt(x); }, T.Or(Number, String), Number)
+algebraic = T(function(x) { return typeof x == 'number' ? x : parseInt(x); }, T.Enum(Number, String), Number)
 assert("polymorphic functions", algebraic("3")+algebraic(3), 6)
 
 Cartesian = T([Number, Number])
 assert("function type as wrapper", Cartesian(function(x){return x})(1), 1)
 
-Nary = T([Number, T.Or(Number, T.Root)])
+Nary = T([Number, T.Enum(Number, T.Root)])
 var sum = Nary(function(x) {
   return Nary(function(y){return y == 0 ? x : sum(x+y)})
 })
