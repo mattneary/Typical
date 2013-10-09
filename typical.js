@@ -172,7 +172,34 @@ T.Enum = function() {
     if( !(this instanceof cons) ) return new cons(data);
     this.obj = data;
   };
+  cons.__proto__ = T.Enum.prototype;
+  cons.types = parts;
   return cons;
+};
+
+T.Match = function(algebraic) {  
+  // TODO: more type-checking of patterns?
+  var args = toArray(arguments).slice(1);
+  var verify = function(type, item) {
+    if( algebraic instanceof T.Enum ) return getType(type).fun(item.obj)
+  };
+  var attempt = function(type, fun, args) {
+    if( args.length != type.length ) throw new Error("Argument count mismatch.");
+    for( var k in type ) {
+      if( !verify(type[k], args[k]) ) throw new Error("Type did not match.");
+    }
+    return fun.apply({}, args.map(function(x){return x.obj}));
+  };
+  return function() {
+    for( var i = 0; i < args.length; i += 2 ) {
+      var type = args[i];
+      var fun = args[i+1];
+      try {
+	return attempt(type, fun, toArray(arguments));
+      } catch(err) {}
+    }
+    throw new Error("Pattern could not be matched.");
+  };
 };
 
 T.render = function(types) {
