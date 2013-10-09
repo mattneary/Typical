@@ -75,10 +75,11 @@ T.build = function(/* types, fun */) {
       var arg = args[0];
       args = args.slice(1);
       return isValid(arg) ? [] : [isValid.message];
-    }, types);
+    }, types);    
 
-    if (!isEmpty(errors))
+    if (!isEmpty(errors)) {
       throw new Error(errors.join(", "));
+    }
 
     // verify return value type
     var resp = fun.apply({}, _args);
@@ -168,7 +169,15 @@ T.Data = function() {
     data.__proto__ = Data.prototype;
     return data;
   };
-  var cons = T(parts.concat([Data]))(Data);
+  var cons = function() {
+    var resp = Data.apply({}, arguments);
+    for( var k in parts ) {
+      var type = getType(parts[k], cons.root);
+      if( !type.fun(arguments[k]) ) throw new Error("Data constructor expected argument at index "+k+" to be of type "+type.name+".");      
+    }
+    resp.__proto__ = cons.prototype;
+    return resp;
+  };
   cons.__proto__ = T.Data.prototype;
   cons.types = parts;
   return cons;
@@ -186,6 +195,13 @@ T.Enum = function() {
   };
   cons.__proto__ = T.Enum.prototype;
   cons.types = parts;
+  for( var k in parts ) {
+    if( parts[k] instanceof T.Data ) {
+      parts[k].rooted = true;
+      parts[k].root = cons;
+    }
+  }
+
   return cons;
 };
 
@@ -315,8 +331,12 @@ var getType = function(type, typeRoot, signature) {
   // references.
   var isRoot = false;
   if( !typeRoot ) {
-   isRoot = true;
-   typeRoot = type;
+    if( type instanceof T.Data && type.root ) {
+      typeRoot = type.root;
+    } else {
+      isRoot = true;
+      typeRoot = type;
+    }
   }
 
   if( type instanceof T.Type ) {
@@ -352,15 +372,23 @@ var getType = function(type, typeRoot, signature) {
         return false;
       }
     };
+  } else if( type instanceof T.Enum ) {
+    return {
+      name: "<Enum>",
+      fun: function(x) {
+        if(!(x instanceof type)) console.log(type(null) instanceof type)
+        return x instanceof type;  
+      }
+    }
   } else if( type instanceof T.Data ) {
     return {
       name: "<Data>",
       fun: function(x) {
         if( typeof x != 'object' || !existy(x) ) return false;
-        for( var k in type.types ) {
-          if( !getType(type.types[k], typeRoot, signature).fun(x[k]) ) return false;
-	}
-        return true; 
+
+	// accept data constructed with the data-constructor
+	if( x instanceof type ) return true;
+	return false;
       }
     };
   } else if( type == T.void ) {
@@ -414,7 +442,7 @@ var getType = function(type, typeRoot, signature) {
     return {
       name: "["+getType(type[0], typeRoot, signature).name+"]",
       fun: function(xs) {
-        if( typeof xs != 'object' || !xs.map ) return false;
+        if( typeof xs != 'object' || !existy(xs) || !xs.map ) return false;
 	return xs.map(getType(type[0], typeRoot, signature).fun).reduce(function(a,b) {
 	  return a && b;
 	}, true);
