@@ -78,6 +78,7 @@ T.build = function(/* types, fun */) {
     }, types);    
 
     if (!isEmpty(errors)) {
+      console.log(_args)
       throw new Error(errors.join(", "));
     }
 
@@ -159,7 +160,9 @@ T.Data = function() {
     if( arguments.length == 1 ) return datas[arguments[0]];
     else {
       datas[arguments[0]] = T.Data.apply({}, toArray(arguments).slice(1));
-      return datas[arguments[0]];
+      var read = datas[arguments[0]];
+      read.name = arguments[0];
+      return read;
     }
   }
 
@@ -191,7 +194,10 @@ T.Enum = function() {
 
     // instantiate an instance
     if( !(this instanceof cons) ) return new cons(data);
-    this.obj = data;
+
+    var resp = [data];
+    resp.__proto__ = cons.prototype;
+    return resp;
   };
   cons.__proto__ = T.Enum.prototype;
   cons.types = parts;
@@ -209,7 +215,7 @@ T.Match = function(algebraic) {
   // TODO: more type-checking of patterns?
   var args = toArray(arguments).slice(1);
   var unbox = function(item, index) {
-    if( algebraic[index] instanceof T.Enum ) return item.obj
+    if( algebraic[index] instanceof T.Enum ) return item[0]
     else return item;
   };
   var verify = function(type, item, index) {    
@@ -376,16 +382,14 @@ var getType = function(type, typeRoot, signature) {
     return {
       name: "<Enum>",
       fun: function(x) {
-        if(!(x instanceof type)) console.log(type(null) instanceof type)
         return x instanceof type;  
       }
     }
   } else if( type instanceof T.Data ) {
     return {
-      name: "<Data>",
+      name: "<Data: "+type.types.map(function(x){return getType(x, typeRoot, signature).name}).join(", ")+">",
       fun: function(x) {
         if( typeof x != 'object' || !existy(x) ) return false;
-
 	// accept data constructed with the data-constructor
 	if( x instanceof type ) return true;
 	return false;
