@@ -1,9 +1,19 @@
-// T is a typed function constructor. The first argument is a 
-// function and the rest are a type annotation, with the final 
-// argument being the return type. A passed function is both 
-// returned in a typed form and, if possible, mutated in the 
-// environment.
+// Various Typers
+// --------------
+// - T
+// - T.build
+// - T.Type
+// - T.Vararg
+// - T.Rest
+// - T.Hungarian
+
 var T = function(fun/*, annotation*/) {
+  // T is a typed function constructor. The first argument is a 
+  // function and the rest are a type annotation, with the final 
+  // argument being the return type. A passed function is both 
+  // returned in a typed form and, if possible, mutated in the 
+  // environment.
+  
   // form a namespace based around globals
   T.init();
 
@@ -39,6 +49,7 @@ T.build = function(/* types, fun */) {
       lead = args.slice(0,-1),
       types = lead.slice(0,-1).map(argTypeChecker(fun['typical_name'], lead)),
       retType = last(lead);
+
   // form a wrapper of the base function which will check
   // argument types, then fire, and then check the return
   // type.
@@ -114,6 +125,24 @@ T.build = function(/* types, fun */) {
   return f;
 };  
 
+T.Type = function(args) {
+  // define a function type by means of T.Type(ret, arg1, ...) with
+  // each argument being a type such as Number.
+  if( !(this instanceof T.Type) ) return new T.Type(toArray(arguments));  
+
+  // make a function which will wrap in type-checking another function,
+  // and which holds onto the provided type signature.
+  var fun = function(toWrap) {
+    return T.apply({}, [toWrap].concat(args));
+  };
+  fun.ret = last(args);
+  fun.args = args.slice(0, -1);   
+
+  // make function inherit from T.Type
+  fun.__proto__ = T.Type.prototype;
+  return fun;
+};
+
 T.Vararg = function(fun, type, retType) {
   // forms a typed function accepting arguments of `type`
   // until it receives `null`.
@@ -177,6 +206,8 @@ T.Hungarian = function(fun) {
   return T.apply({}, [fun].concat(types.concat([parsePrefix(fun.name)])));
 };
 
+// Data Types & Enums
+// ------------------
 var datas = {};
 T.Data = function() {
   // form a product type. a constructor of this data-type
@@ -216,6 +247,7 @@ T.Data = function() {
 };
 
 T.unbox = function(x) {
+  // expose the object of an enum
   return x[0];
 };
 
@@ -252,6 +284,8 @@ T.Enum = function() {
   return cons;
 };
 
+// Pattern Matching
+// ----------------
 T.Match = function(algebraic) {  
   // form a pattern-matching function definition, with
   // the first argument being a function type signature
@@ -302,6 +336,40 @@ T.Match = function(algebraic) {
   };
 };
 
+// Non-parametrized Types
+// ----------------------
+T.void = {};
+T.Circular = {};
+T.Root = {};
+
+T.Or = function(args) {
+  // form an algebraic type combining all of the provided types
+  if( !(this instanceof T.Or) ) return new T.Or(toArray(arguments));
+  this.types = args;
+};
+
+
+// Namespace Handling
+// ------------------
+var root;
+T.init = function() {
+  // initialize Typical to have a root scope on
+  // which all functions will be defined.
+
+  // if a root element has been set, return
+  if( root ) return;
+
+  // attempt browser globals, fallback to node
+  try {
+    root = window;       
+  } catch(err) {
+    // a strict set of required globals
+    root = GLOBAL; 
+  } 
+};
+
+// Type Checker Functions
+// ----------------------
 T.render = function(types) {
   // render a signature given the types
   var args = types.slice(0, types.length-1).map(getType);
@@ -318,53 +386,6 @@ T.checker = function(message, fun) {
 
   f['message'] = message;
   return f;
-};
-
-// flag type values. void signals a lack of return value,
-// and Circular is used in recursive type definitions.
-T.void = {};
-T.Circular = {};
-T.Root = {};
-
-T.Type = function(args) {
-  // define a function type by means of T.Type(ret, arg1, ...) with
-  // each argument being a type such as Number.
-  if( !(this instanceof T.Type) ) return new T.Type(toArray(arguments));  
-
-  // make a function which will wrap in type-checking another function,
-  // and which holds onto the provided type signature.
-  var fun = function(toWrap) {
-    return T.apply({}, [toWrap].concat(args));
-  };
-  fun.ret = last(args);
-  fun.args = args.slice(0, -1);   
-
-  // make function inherit from T.Type
-  fun.__proto__ = T.Type.prototype;
-  return fun;
-};
-
-T.Or = function(args) {
-  // form an algebraic type combining all of the provided types
-  if( !(this instanceof T.Or) ) return new T.Or(toArray(arguments));
-  this.types = args;
-};
-
-var root;
-T.init = function() {
-  // initialize Typical to have a root scope on
-  // which all functions will be defined.
-
-  // if a root element has been set, return
-  if( root ) return;
-
-  // attempt browser globals, fallback to node
-  try {
-    root = window;       
-  } catch(err) {
-    // a strict set of required globals
-    root = GLOBAL; 
-  } 
 };
 
 var argTypeChecker = function(fun, signature) {
@@ -385,6 +406,158 @@ var argTypeChecker = function(fun, signature) {
     return T.checker(msg, checker.fun);
   };
 };
+var getFunType = function(type, typeRoot, signature) {
+  // a function type definition was passed 
+  return {
+    name: '(' + type.args.map(function(x) { 
+      return getType(x, typeRoot, signature); 
+    }).map(function(x) {
+     return x.name;
+    }).join(", ") + ') -> ' + getType(type.ret, typeRoot, signature).name,
+    fun: function(x) {
+      // check that the function is typed and that the return type matches
+      if( !x.typed || !typeMatch(type.ret, x.type.ret)) return false;
+
+      var passed = true;
+      for( var k in type.args ) {
+	if( !typeMatch(type.args[k], x.type.args[k]) ) return false;
+      }
+      return true;
+    }
+  };
+};
+var getFuzzyType = function(type, typeRoot, signature) {
+  // check against an algebraic type of possible
+  // types for the argument
+  return {
+    name: "("+type.types.map(function(x) {
+      return getType(x, typeRoot, signature).name
+    }).join(" | ")+")",
+    fun: function(x) {
+      for( var k in type.types ) {
+	if( getType(type.types[k], typeRoot, signature).fun(x) ) {
+	  return true;
+	}
+      }
+      return false;
+    }
+  };
+};
+var getEnumType = function(type, typeRoot, signature) {
+  return {
+    name: "("+type.types.map(function(x) {
+      return getType(x, typeRoot, signature).name
+    }).join(" | ")+")",
+    fun: function(x) {
+      for( var k in type.types ) {
+	if( getType(type.types[k], typeRoot, signature).fun(x) ) {
+	  return true;
+	}
+      }
+      return x instanceof type;  
+    }
+  };
+};
+var getDataType = function(type, typeRoot, signature) {
+  return {
+    name: "<Data: "+type.types.map(function(x){
+      return getType(x, typeRoot, signature).name
+    }).join(", ")+">",
+    fun: function(x) {
+      if( typeof x != 'object' || !existy(x) ) return false;
+      // accept data constructed with the data-constructor
+      if( x instanceof type ) return true;
+      return false;
+    }
+  };
+};
+var getVoidType = function(type, typeRoot, signature) {
+  // the void response type was passed
+  return {
+    name: "void",
+    fun: function(x) {
+      return !existy(x);
+    }
+  };
+};
+var getCircularType = function(type, typeRoot, signature) {
+  return {
+    name: '<Circular>',
+    fun: function(x) {
+      return getType(typeRoot, undefined, signature).fun(x);
+    }
+  };
+};
+var getRootType = function(type, typeRoot, signature) {
+  return {
+    name: '<Root>',
+    fun: function(x) {
+      return getType(T(signature), typeRoot, signature).fun(x);
+    }
+  };
+};
+var getConstructedType = function(type, typeRoot, signature) {
+  // a constructor was passed
+  if( type == Number ) {
+    return {
+      name: "Number",
+      fun: function(x) { return typeof x == 'number' }
+    };
+  } else if( type == String ) {
+    return {
+      name: "String",
+      fun: function(x) { return typeof x == 'string' }
+    };
+  } else if( type == Boolean ) {
+    return {
+      name: "Boolean",
+      fun: function(x) { return typeof x == 'boolean' }
+    }
+  } else {
+    // arbitrary constructor type checker
+    return {
+      name: type.name,
+      fun: function(x) { return x instanceof type; }
+    };	
+  }
+};
+var getListType = function(type, typeRoot, signature) {
+  // an array was passed
+  return {
+    name: "["+getType(type[0], typeRoot, signature).name+"]",
+    fun: function(xs) {
+      if( typeof xs != 'object' || !existy(xs) || !xs.map ) {
+	return false;
+      }
+      var check = getType(type[0], typeRoot, signature).fun;
+      return xs.map(check).reduce(function(a,b) {
+	return a && b;
+      }, true);
+    }
+  };
+};
+var getDuckType = function(type, typeRoot, signature) {
+  // an object was passed. objects are duck-typed.
+
+  // render the key-pair types for use in the signature
+  var valTypes = Object.keys(type).map(function(k) {
+    var t = getType(type[k], typeRoot, signature);
+    t.pair = [k, getType(type[k], typeRoot, signature).name].join(" => ");
+    return t;
+  });
+
+  return {
+    name: "{ "+valTypes.map(function(x){ return x.pair; }).join(", ")+" }",
+    fun: function(xs) {
+      if( typeof xs != 'object' || xs.map ) return false;
+      var passed = true;
+      for( var k in xs ) {
+	passed = passed && getType(type[k], typeRoot, signature).fun(xs[k]);
+      }
+      return passed;
+    }
+  };
+};
 var getType = function(type, typeRoot, signature) {
   // forms a checker for a given type, maintaining
   // an idea of root type and function to which it
@@ -402,150 +575,35 @@ var getType = function(type, typeRoot, signature) {
     }
   }
 
-  if( type instanceof T.Type ) {
-    // a function type definition was passed 
-    return {
-      name: '(' + type.args.map(function(x) { 
-        return getType(x, typeRoot, signature); 
-      }).map(function(x) {
-       return x.name;
-      }).join(", ") + ') -> ' + getType(type.ret, typeRoot, signature).name,
-      fun: function(x) {
-        // check that the function is typed and that the return type matches
-	if( !x.typed || !typeMatch(type.ret, x.type.ret)) return false;
-
-        var passed = true;
-	for( var k in type.args ) {
-          if( !typeMatch(type.args[k], x.type.args[k]) ) return false;
-	}
-	return true;
-      }
-    };
-  } else if( type instanceof T.Or ) {
-    // check against an algebraic type of possible
-    // types for the argument
-    return {
-      name: "("+type.types.map(function(x) {
-        return getType(x, typeRoot, signature).name
-      }).join(" | ")+")",
-      fun: function(x) {
-        for( var k in type.types ) {
-          if( getType(type.types[k], typeRoot, signature).fun(x) ) {
-	    return true;
-	  }
-	}
-        return false;
-      }
-    };
-  } else if( type instanceof T.Enum ) {
-    return {
-      name: "("+type.types.map(function(x) {
-        return getType(x, typeRoot, signature).name
-      }).join(" | ")+")",
-      fun: function(x) {
-        for( var k in type.types ) {
-          if( getType(type.types[k], typeRoot, signature).fun(x) ) {
-            return true;
-          }
-	}
-        return x instanceof type;  
-      }
+  // pick a specific checker-creator and invoke it upon
+  // the type, typeRoot, and signature.
+  return (function() {
+    if( type instanceof T.Type ) {
+      return getFunType;
+    } else if( type instanceof T.Or ) {
+      return getFuzzyType;
+    } else if( type instanceof T.Enum ) {
+      return getEnumType;
+    } else if( type instanceof T.Data ) {
+      return getDataType;
+    } else if( type == T.void ) {
+      return getVoidType;
+    } else if( type == T.Circular || (type == typeRoot && !isRoot) ) {
+      return getCircularType;
+    } else if( type == T.Root ) {
+      return getRootType;
+    }  else if( typeof type == 'function' ) {
+      return getConstructedType;
+    } else if( typeof type == 'object' && type.map ) {
+      return getListType;
+    } else if( typeof type == 'object' ) {    
+      return getDuckType;
     }
-  } else if( type instanceof T.Data ) {
-    return {
-      name: "<Data: "+type.types.map(function(x){
-        return getType(x, typeRoot, signature).name
-      }).join(", ")+">",
-      fun: function(x) {
-        if( typeof x != 'object' || !existy(x) ) return false;
-	// accept data constructed with the data-constructor
-	if( x instanceof type ) return true;
-	return false;
-      }
-    };
-  } else if( type == T.void ) {
-    // the void response type was passed
-    return {
-      name: "void",
-      fun: function(x) {
-	return !existy(x);
-      }
-    };
-  } else if( type == T.Circular || (type == typeRoot && !isRoot) ) {
-    return {
-      name: '<Circular>',
-      fun: function(x) {
-        return getType(typeRoot, undefined, signature).fun(x);
-      }
-    };
-  } else if( type == T.Root ) {
-    return {
-      name: '<Root>',
-      fun: function(x) {
-        return getType(T(signature), typeRoot, signature).fun(x);
-      }
-    };
-  }  else if( typeof type == 'function' ) {
-    // a constructor was passed
-    if( type == Number ) {
-      return {
-	name: "Number",
-	fun: function(x) { return typeof x == 'number' }
-      };
-    } else if( type == String ) {
-      return {
-	name: "String",
-	fun: function(x) { return typeof x == 'string' }
-      };
-    } else if( type == Boolean ) {
-      return {
-	name: "Boolean",
-	fun: function(x) { return typeof x == 'boolean' }
-      }
-    } else {
-      // arbitrary constructor type checker
-      return {
-	name: type.name,
-	fun: function(x) { return x instanceof type; }
-      };	
-    }
-  } else if( typeof type == 'object' && type.map ) {
-    // an array was passed
-    return {
-      name: "["+getType(type[0], typeRoot, signature).name+"]",
-      fun: function(xs) {
-        if( typeof xs != 'object' || !existy(xs) || !xs.map ) {
-          return false;
-	}
-	var check = getType(type[0], typeRoot, signature).fun;
-	return xs.map(check).reduce(function(a,b) {
-	  return a && b;
-	}, true);
-      }
-    };
-  } else if( typeof type == 'object' ) {    
-    // an object was passed. objects are duck-typed.
-
-    // render the key-pair types for use in the signature
-    var valTypes = Object.keys(type).map(function(k) {
-      var t = getType(type[k], typeRoot, signature);
-      t.pair = [k, getType(type[k], typeRoot, signature).name].join(" => ");
-      return t;
-    });
-
-    return {
-      name: "{ "+valTypes.map(function(x){ return x.pair; }).join(", ")+" }",
-      fun: function(xs) {
-        if( typeof xs != 'object' || xs.map ) return false;
-	var passed = true;
-	for( var k in xs ) {
-	  passed = passed && getType(type[k], typeRoot, signature).fun(xs[k]);
-	}
-	return passed;
-      }
-    };
-  }
+  }())(type, typeRoot, signature);
 };
+
+// Type Comparison and Assessment
+// ------------------------------
 var typeMatch = function(a, b, aRoot, bRoot) {
   // Checks whether two types are equivalent, for the
   // sake of verifying function arguments.
@@ -602,7 +660,8 @@ var typeRecurses = function(type) {
   return false;
 };
 
-// function dependencies
+// Function Dependencies
+// ---------------------
 var existy = function(x) {
   return typeof x != "undefined" && x != null;
 };
@@ -635,7 +694,8 @@ var copy = function(obj) {
   return a;
 };
 
-// export the Typical function if in node
+// Exporting
+// ---------
 try {
   module.exports = T; 
 } catch(err) {
