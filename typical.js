@@ -367,6 +367,10 @@ T.init = function() {
     root = GLOBAL; 
   } 
 };
+T.ns = function() {
+  root = {};
+  return root;
+};
 
 // Type Checker Functions
 // ----------------------
