@@ -2,7 +2,7 @@
 var eq = function(a, b) {
   if( typeof a == 'object' ) {
     if( typeof b != 'object' ) return false;
-    for( var k in a ) if( !eq(b[k], a[k]) ) return false;
+    for( var k in a ) if( !eq(a[k], b[k]) ) return false;
     for( var k in b ) if( !eq(b[k], a[k]) ) return false;
     return true;
   } else {

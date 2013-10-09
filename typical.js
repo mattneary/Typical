@@ -51,11 +51,11 @@ T.build = function(/* types, fun */) {
       return f.bind.apply(f, [{}].concat(_args));
     }
 
-    // NB: we do not throw an error for excessive arguments,
-    //     given the throw-away arguments commonly passed to 
-    //     callbacks by built-in functions. we simply ignore them.
     if( arguments.length > types.length ) {
       if( !typeRecurses(lead[lead.length-1]) ) {
+        // NB: we do not throw an error for excessive arguments,
+        //     given the throw-away arguments commonly passed to 
+        //     callbacks by built-in functions. we simply ignore them.
         _args = _args.slice(0, types.length);
       } else {
         // if we are allowing subsequent args to serve as
@@ -107,6 +107,8 @@ T.build = function(/* types, fun */) {
 };  
 
 T.Vararg = function(fun, type, retType) {
+  // forms a typed function accepting arguments of `type`
+  // until it receives `null`.
   var argType = T.Or(type, T.void);
   var Nary = T([argType, T.Or(retType, T.Root)])
   var Stack = T([[argType], T.Or(retType, Nary)])
@@ -125,6 +127,10 @@ T.Vararg = function(fun, type, retType) {
 };
 
 T.Rest = function(fun/*, types*/) {
+  // accepts a function and a type signature, with
+  // the final type extended to apply to all subsequent
+  // arguments. this is built on top of the standard
+  // type system, not a special feature.
   var types = toArray(arguments).slice(1).slice(0,-1);
   var retType = last(toArray(arguments));
   return function() {
@@ -136,6 +142,8 @@ T.Rest = function(fun/*, types*/) {
 };
 
 T.Hungarian = function(fun) {
+  // applying typing to a function based on the
+  // hungarian naming scheme.
   var argnames = function(func) {
     var comments = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
     var fnStr = func.toString().replace(comments, '');
@@ -156,6 +164,8 @@ T.Hungarian = function(fun) {
 
 var datas = {};
 T.Data = function() {
+  // form a product type. a constructor of this data-type
+  // will be returned.
   if( typeof arguments[0] == 'string' ) {
     if( arguments.length == 1 ) return datas[arguments[0]];
     else {
@@ -187,6 +197,9 @@ T.Data = function() {
 };
 
 T.Enum = function() {
+  // form a sum type. note that product types passed
+  // will be given the context of the enumerable for
+  // recursive types.
   var parts = toArray(arguments);
   var cons = function(data) {
     // type-check
@@ -212,7 +225,14 @@ T.Enum = function() {
 };
 
 T.Match = function(algebraic) {  
-  // TODO: more type-checking of patterns?
+  // form a pattern-matching function definition, with
+  // the first argument being a function type signature
+  // and subsequent pairs of arguments being an argument
+  // type signature and a function for handling it.
+
+  // for example, you may use this to delegate the
+  // possibilities of a sum type.
+  
   var args = toArray(arguments).slice(1);
   var unbox = function(item, index) {
     if( algebraic[index] instanceof T.Enum ) return item[0]
@@ -238,7 +258,9 @@ T.Match = function(algebraic) {
       if( resp ) {
         resp = resp.resp;
 	var retType = getType(last(algebraic));
-	if( !retType.fun(resp) ) throw new Error("Expected return type of pattern to be "+retType.name+".");
+	if( !retType.fun(resp) ) {
+	  throw new Error("Expected return type of pattern to be "+retType.name+".");
+	}
         return resp;
       }
     }
