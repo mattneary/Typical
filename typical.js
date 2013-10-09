@@ -180,15 +180,21 @@ T.Enum = function() {
 T.Match = function(algebraic) {  
   // TODO: more type-checking of patterns?
   var args = toArray(arguments).slice(1);
-  var verify = function(type, item) {
-    if( algebraic instanceof T.Enum ) return getType(type).fun(item.obj)
+  var unbox = function(item, index) {
+    if( algebraic[index] instanceof T.Enum ) return item.obj
+    else return item;
+  };
+  var verify = function(type, item, index) {    
+    return getType(type).fun(unbox(item, index));
   };
   var attempt = function(type, fun, args) {
     if( args.length != type.length ) throw new Error("Argument count mismatch.");
+    var index = 0;
     for( var k in type ) {
-      if( !verify(type[k], args[k]) ) throw new Error("Type did not match.");
+      if( !verify(type[k], args[k], index) ) throw new Error("Type did not match.");
+      index += 1;
     }
-    return fun.apply({}, args.map(function(x){return x.obj}));
+    return fun.apply({}, args.map(unbox));
   };
   return function() {
     for( var i = 0; i < args.length; i += 2 ) {

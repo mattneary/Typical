@@ -60,8 +60,8 @@ assert("leading and rest params", T.Rest(function(a) { return a+arguments.length
 NumOrStr = T.Enum(String, Number)
 assert("enumerable types", T([NumOrStr, Number])(function(x){return 1})(NumOrStr(1)), 1)
 
-msg = T.Match(NumOrStr,
-              [String], T(function(x) { return parseInt(x) }, String, Number),
-              [Number], T(function(x) { return x }, Number, Number))
-T(msg, NumOrStr, Number)	      
-assert("pattern matching of sum types", msg(NumOrStr("1")), 1)
+msg = T.Match([NumOrStr, Number],
+              [String, Number], T(function(x, y) { return parseInt(x)+y }, String, Number, Number),
+              [Number, Number], T(function(x, y) { return x+y }, Number, Number, Number))
+T(msg, NumOrStr, Number, Number)	      
+assert("pattern matching of sum types", msg(NumOrStr("1"), 1), 2)
