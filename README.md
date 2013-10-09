@@ -22,7 +22,7 @@ seen as distinct from the unrolled type. This idea may give you a better
 understanding of the use of keywords `T.Root`, and later, `T.Circular`.
 
 ```javascript
-Nary = T([Number, T.Or(Number, T.Root)])
+Nary = T([Number, T.Enum(Number, T.Root)])
 sum = Nary(function(x) {
   return // ...
 })
@@ -48,6 +48,10 @@ these types, for example, `[String]` or `{name:String, age:Number}`,
 by making sum types of the form `a | b` with `T.Or(a, b, ...)`. There 
 are also special types `T.Circular` and `T.Root` for use in recursive types 
 and recursive function types, respectively.
+
+## Algebraic Types
+Typical supports product and sum types, by means of `T.Data` and `T.Enum`,
+respectively.
 
 ### Function Types
 You will, at times, wish to have a function accept another function as
