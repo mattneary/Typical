@@ -65,3 +65,6 @@ msg = T.Match([NumOrStr, Number, Number],
               [Number, Number], T(function(x, y) { return x+y }, Number, Number, Number))
 T(msg, NumOrStr, Number, Number)	      
 assert("pattern matching of sum types", msg(NumOrStr("1"), 1), 2)
+
+Street = T.Enum(T.Data("Home", Number), T.void)
+assert("inline data labeling", T([Street, Number])(function(){return 1})(Street(T.Data("Home")(27))), 1)

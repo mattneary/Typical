@@ -152,14 +152,26 @@ T.Hungarian = function(fun) {
   return T.apply({}, [fun].concat(argnames(fun).map(parsePrefix).concat([parsePrefix(fun.name)])));
 };
 
+var datas = {};
 T.Data = function() {
+  if( typeof arguments[0] == 'string' ) {
+    if( arguments.length == 1 ) return datas[arguments[0]];
+    else {
+      datas[arguments[0]] = T.Data.apply({}, toArray(arguments).slice(1));
+      return datas[arguments[0]];
+    }
+  }
+
   var parts = toArray(arguments);
   function Data() {
     var data = toArray(arguments);
     data.__proto__ = Data.prototype;
     return data;
   };
-  return T(parts.concat([Data]))(Data);
+  var cons = T(parts.concat([Data]))(Data);
+  cons.__proto__ = T.Data.prototype;
+  cons.types = parts;
+  return cons;
 };
 
 T.Enum = function() {
@@ -334,11 +346,21 @@ var getType = function(type, typeRoot, signature) {
         return getType(x, typeRoot, signature).name
       }).join(" | ")+")",
       fun: function(x) {
-        var passed = true;
         for( var k in type.types ) {
           if( getType(type.types[k], typeRoot, signature).fun(x) ) return true;
 	}
         return false;
+      }
+    };
+  } else if( type instanceof T.Data ) {
+    return {
+      name: "<Data>",
+      fun: function(x) {
+        if( typeof x != 'object' || !existy(x) ) return false;
+        for( var k in type.types ) {
+          if( !getType(type.types[k], typeRoot, signature).fun(x[k]) ) return false;
+	}
+        return true; 
       }
     };
   } else if( type == T.void ) {
