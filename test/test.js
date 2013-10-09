@@ -22,13 +22,13 @@ assert("type annotations", map2(f2, [1,2,3]), [2,3,4])
 circleTest = T(function(x) { return 0; }, [T.Circular], Number)
 assert("recursive types", circleTest([[]]), 0)
 
-algebraic = T(function(x) { return typeof x == 'number' ? x : parseInt(x); }, T.Enum(Number, String), Number)
-assert("polymorphic functions", algebraic("3")+algebraic(3), 6)
+algebraic = T(function(x) { return typeof x == 'number' ? x : parseInt(x[0]); }, T.Enum(T.Data("Num", Number), T.Data("Str", String)), Number)
+assert("polymorphic functions", algebraic(T.Data("Str")("3"))+algebraic(T.Data("Num")(3)), 6)
 
 Cartesian = T([Number, Number])
 assert("function type as wrapper", Cartesian(function(x){return x})(1), 1)
 
-Nary = T([Number, T.Enum(Number, T.Root)])
+Nary = T([Number, T.Or(Number, T.Root)])
 var sum = Nary(function(x) {
   return Nary(function(y){return y == 0 ? x : sum(x+y)})
 })
@@ -50,17 +50,19 @@ assert("rest params", T.Rest(Math.max, Number, Number)(1,2,3), 3)
 
 assert("leading and rest params", T.Rest(function(a) { return a+arguments.length }, String, Number, String)("count: ", 1, 2), "count: 3")
 
-NumOrStr = T.Enum(String, Number)
-assert("enumerable types", T([NumOrStr, Number])(function(x){return 1})(NumOrStr(1)), 1)
+NumOrStr = T.Enum(T.Data("Num", Number), T.Data("Str", String))
+assert("enumerable types", T([NumOrStr, Number])(function(x){return 1})(T.Data("Num")(1)), 1)
 
 msg = T.Match([NumOrStr, Number, Number],
               [String, Number], T(function(x, y) { return parseInt(x)+y }, String, Number, Number),
               [Number, Number], T(function(x, y) { return x+y }, Number, Number, Number))
 T(msg, NumOrStr, Number, Number)	      
-assert("pattern matching of sum types", msg(NumOrStr("1"), 1), 2)
+assert("pattern matching of sum types", msg(T.Data("Str")("1"), 1), 2)
 
-Street = T.Enum(T.Data("Home", Number, T.Circular), T.void)
-assert("inline data labeling", T([Street, Number])(function(){return 1})(Street(T.Data("Home")(27, Street(null)))), 1)
+Street = T.Enum(T.Data("Home", Number, T.Circular), T.Data("Empty", T.void))
+assert("inline data labeling", T([Street, Number])(function(){
+  return 1
+})(T.Data("Home")(27, T.Data("Empty")())), 1)
 
 Node = T.Enum(T.Data("Node", Number, T.Circular), T.Data("Empty", T.void))
 function lisp(x) {

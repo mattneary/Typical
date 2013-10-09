@@ -201,6 +201,9 @@ T.Enum = function() {
   // will be given the context of the enumerable for
   // recursive types.
   var parts = toArray(arguments);
+  for( var k in parts ) {
+    if( !(parts[k] instanceof T.Data) ) throw new Error("Enumerable types must be data constructors.");
+  }
   var cons = function(data) {
     // type-check
     T([T.Or.apply({}, parts)].concat([T.void]))(function(){})(data);
