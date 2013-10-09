@@ -49,9 +49,24 @@ by making sum types of the form `a | b` with `T.Or(a, b, ...)`. There
 are also special types `T.Circular` and `T.Root` for use in recursive types 
 and recursive function types, respectively.
 
-## Algebraic Types
+### Algebraic Types
 Typical supports product and sum types, by means of `T.Data` and `T.Enum`,
-respectively.
+respectively. A sum type is a sort of type union, allowing any of its
+addend types to be considered of its type. A product type joins the data
+held by multiple types into a single package. Additionally, a data constructor
+can be defined inline with an enumerable type. For example:
+
+```javascript
+Node = T.Enum(T.Data("Node", Number, T.Circular), T.Data("Empty", T.void))
+function lisp(x) {
+  if( x.length == 0 ) return T.Data("Empty")(null)
+  return T.Data("Node")(x[0], lisp(x.slice(1)))
+}
+T(lisp, [Number], Node)
+```
+
+Note the ability to the data type to be defined recursively upon the entire
+type. This is a foundation for the creation of arbitrary data structures.
 
 ### Function Types
 You will, at times, wish to have a function accept another function as

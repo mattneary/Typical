@@ -64,9 +64,7 @@ assert("inline data labeling", T([Street, Number])(function(){return 1})(Street(
 
 Node = T.Enum(T.Data("Node", Number, T.Circular), T.Data("Empty", T.void))
 function lisp(x) {
-  if( x.length == 0 ) {
-    return T.Data("Empty")(null)
-  }
+  if( x.length == 0 ) return T.Data("Empty")(null)
   return T.Data("Node")(x[0], lisp(x.slice(1)))
 }
 T(lisp, [Number], Node)
