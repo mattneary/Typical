@@ -188,21 +188,25 @@ T.Match = function(algebraic) {
     return getType(type).fun(unbox(item, index));
   };
   var attempt = function(type, fun, args) {
-    if( args.length != type.length ) throw new Error("Argument count mismatch.");
+    if( args.length != type.length ) return false;
     var index = 0;
     for( var k in type ) {
-      if( !verify(type[k], args[k], index) ) throw new Error("Type did not match.");
+      if( !verify(type[k], args[k], index) ) return false;
       index += 1;
     }
-    return fun.apply({}, args.map(unbox));
+    return { resp: fun.apply({}, args.map(unbox)) };
   };
   return function() {
     for( var i = 0; i < args.length; i += 2 ) {
       var type = args[i];
       var fun = args[i+1];
-      try {
-	return attempt(type, fun, toArray(arguments));
-      } catch(err) {}
+      var resp = attempt(type, fun, toArray(arguments));
+      if( resp ) {
+        resp = resp.resp;
+	var retType = getType(last(algebraic));
+	if( !retType.fun(resp) ) throw new Error("Expected return type of pattern to be "+retType.name+".");
+        return resp;
+      }
     }
     throw new Error("Pattern could not be matched.");
   };
