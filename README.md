@@ -26,11 +26,18 @@ Supported types include `Number`, `String`, `Boolean`, object types, sum
 and product types which we will discuss further later, list and 
 key-value types, and function types.
 
+The primary motivation for Typical is to bring type-checking to the dynamic
+language of JavaScript. Why? Type checking removes the possibility of an entire
+class of bugs, and, additionally, provides the coder with a more clear view
+of the problem which his function solves. The type system of Typical is
+ambitious, aiming to mirror Haskell in some regards, and is still a work in
+progress.
+
 ## Getting Started
 ### Types
 Types are provided as class constructors, like `Number`, `String`, or 
 `MyClass` or as data types and algebraic types can either be formed by passing 
-Arrays or Hashes of these types, for example, `[String]` or `{name:String, age:Number}`,
+multiple types to a data-type constructor, e.g., `T.Data(Number, String)`,
 or by making sum types of the form `a | b` with `T.Enum(a, b, ...)`. Recursive
 types can be defined using `T.Circular` and functions without return values
 can be defined using `T.void`. Here's how derived types can be used:
