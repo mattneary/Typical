@@ -18,7 +18,7 @@ An additional benefit of typed functions is that they get partial application
 for free. For example:
 
 ```javascript
-sum = T(function(a, b) { return a + b })
+sum = T(function(a, b) { return a + b }, Number, Number, Number)
 plus3 = sum(3)
 ```
 
