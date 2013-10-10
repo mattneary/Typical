@@ -109,4 +109,10 @@ Stringify = T([Number, String])
 ```
 
 This type can then be used both as a constructor of typed functions and as
-a type for function signatures.
+a type for function signatures. Here is an example of a function type at use:
+
+```javascript
+map = T(function(f, xs) { return xs.map(f) }, T([Number, Number]), [Number], [Number])
+f = T(function(x) { return x+1 }, Number, Number)
+```
+
