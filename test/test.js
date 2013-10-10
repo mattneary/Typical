@@ -1,12 +1,17 @@
 // if in browser, use a provided `render` function
 try {
   T = require('../typical')
-  render = console.log.bind(console);
+  var Assert = require('./assert')
+
+  assert = Assert.init();
+  run = Assert.run;
+  assert = assert;
 } catch(err) {
   // no require necessary in browser
+  run = function(){};
+  assert = render;
 }
 
-var assert = require('./assert')(render);
 
 // tests
 map = T(function(f, xs) { return xs.map(f) }, T([Number, Number]), [Number], [Number])
@@ -62,3 +67,5 @@ function lisp(x) {
 }
 T(lisp, [Number], LinkedList)
 assert("linked list", lisp([1,2,3]), [1,[2,[3,[undefined]]]])
+
+run();
