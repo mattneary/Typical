@@ -40,7 +40,9 @@ Types are provided as class constructors, like `Number`, `String`, or
 multiple types to a data-type constructor, e.g., `T.Data(Number, String)`,
 or by making sum types of the form `a | b` with `T.Enum(a, b, ...)`. Recursive
 types can be defined using `T.Circular` and functions without return values
-can be defined using `T.void`. Here's how derived types can be used:
+can be defined using `T.void`. Additional types can also be derived by wrapping
+types in lists of key-value pairs, e.g., `{name:String}` or `[Number]`.
+Here's how derived types can be used:
 
 ```javascript
 fold = T(function(f, xs) {
