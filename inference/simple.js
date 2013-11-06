@@ -15,6 +15,8 @@ T.enforce = function(a, b, f) {
 };
 var isArray = function(a) {
   return function(as) {
+    if( typeof as != 'object' ) return false;
+    if( !as.filter ) return false;
     return as.filter(function(x) { return !a(x) }).length == 0;
    };
 };
@@ -38,16 +40,20 @@ var checker = function(x) {
     else return x; 
   } else if( typeof x == 'object' ) {
     if( x.map ) return isArray(checker(x[0]));
-    else return isDuckTyped(Object.keys(x), Object.keys(x).map(checker));
+    else return isDuckTyped(Object.keys(x), Object.keys(x).map(function(k) {
+      return checker(x[k])
+    }));
   } else {
     throw new Error("Type signature could not be parsed.");
   }
 };
 var infer = function(x) {
   if( x.type ) {
-    return function(y) {
+    var inferred = function(y) {
       return x.type[0] == y.type[0] && x.type[1] == y.type[1];
     };
+    inferred.type = x.type;
+    return inferred;
   } else {
     return (typeof x == 'object' ? 
              (x.map ? 

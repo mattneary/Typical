@@ -47,18 +47,34 @@ assert(function() {
 });
 
 var Or = T.forall(function(atoc) {
-  return T.forall(function(btoc) {
-    return function(x) {
-      if( atoc[0](x) ) {
-        return atoc(x);
-      } else {
-        return btoc(x);
-      }
-    };
-  });
+  return function(f) {
+    return T.forall(function(btoc) {
+      return function(g) {
+	return function(x) {
+	  if( atoc.type[0](x) ) {
+	    return f(x);
+	  } else {
+	    return g(x);
+	  }
+	};
+      };
+    });
+  };
 });
 var first = T([Number], Number, function(xs) { return xs[0] });
-console.log(first([1,2,3]));
+assert(function() {
+  return first([1,2,3]);
+});
+var aObj = T({a:Number}, Number, function(o) { return o.a  });
+assert(function() {
+  return aObj({a:1});
+});
+assert(function() {
+  return Or(first)(aObj)({a:1});
+});
+assert(function() {
+  return Or(first)(aObj)([1,2]);
+});
 
 render();
 
