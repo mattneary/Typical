@@ -4,6 +4,16 @@ assert = test.assert;
 assert_fail = test.assert_fail;
 render = test.render;
 
+assert_fail(function() {
+  return T(Number, Number, function(x) { return x })("1");
+});
+assert(function() {
+  return T(Number, Number, function(x) { return x })(1);
+});
+assert(function() {
+  return T([Number], Number, function(x) { return x[0] })([1]);
+});
+
 var id = T.forall(function(A) {
   // A -> A forall A
   return T(A, A, function(x) {
@@ -25,7 +35,7 @@ assert(function() {
 
 var retype = T.forall(function(A) {
   // A -> A, fail when A != [String -> Number]
-  return T(A, A, function(x) { 
+  return T.enforce(A, A, function(x) { 
     return T(String, Number, function(x) { return x }) 
   });
 });
@@ -47,5 +57,8 @@ var Or = T.forall(function(atoc) {
     };
   });
 });
+var first = T([Number], Number, function(xs) { return xs[0] });
+console.log(first([1,2,3]));
 
 render();
+

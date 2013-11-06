@@ -1,4 +1,6 @@
 var T = function(a, b, f) {
+  a = checker(a);
+  b = checker(b);
   var typed = function(x) {
     if( !a(x) ) throw new Error("Argument type mismatch.");
     var resp = f(x);
@@ -7,6 +9,9 @@ var T = function(a, b, f) {
   };
   typed.type = [a, b];
   return typed;
+};
+T.enforce = function(a, b, f) {
+  return T(a, b, f, true);
 };
 var isArray = function(a) {
   return function(as) {
@@ -23,6 +28,21 @@ var isDuckTyped = function(ks, ts) {
 var isNumber = function(x) { return typeof x == 'number' };
 var isString = function(x) { return typeof x == 'string' };
 var isBoolean = function(x) { return typeof x == 'boolean' };
+var isType = function(x) { return x.isType };
+var checker = function(x) {
+  if( isType(x) ) return x;
+  if( typeof x == 'function' ) {
+    if( x == Number ) return isNumber;
+    else if( x == String ) return isString;
+    else if( x == Boolean ) return isBoolean;
+    else return x; 
+  } else if( typeof x == 'object' ) {
+    if( x.map ) return isArray(checker(x[0]));
+    else return isDuckTyped(Object.keys(x), Object.keys(x).map(checker));
+  } else {
+    throw new Error("Type signature could not be parsed.");
+  }
+};
 var infer = function(x) {
   if( x.type ) {
     return function(y) {
