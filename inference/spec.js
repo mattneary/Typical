@@ -36,4 +36,16 @@ assert(function() {
   return retype(T(String, Number, function(x) { return x; })); 
 });
 
+var Or = T.forall(function(atoc) {
+  return T.forall(function(btoc) {
+    return function(x) {
+      if( atoc[0](x) ) {
+        return atoc(x);
+      } else {
+        return btoc(x);
+      }
+    };
+  });
+});
+
 render();
