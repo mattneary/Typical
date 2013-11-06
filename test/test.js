@@ -66,6 +66,7 @@ function lisp(x) {
   return T.Data("Node")(x[0], lisp(x.slice(1)))
 }
 T(lisp, [Number], LinkedList)
-assert("linked list", lisp([1,2,3]), [1,[2,[3,[undefined]]]])
+assert("linked list", lisp([1,2,3]), [1,[2,[3,[]]]])
 
 run();
+
