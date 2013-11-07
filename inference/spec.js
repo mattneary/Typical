@@ -35,7 +35,7 @@ assert(function() {
 
 var retype = T.forall(function(A, a) {
   // A -> A, fail when A != [String -> Number]
-  return T.enforce(A, A, function(x) { 
+  return T(A, A, function(x) { 
     return T(String, Number, function(x) { return x }) 
   })(a);
 });
@@ -44,6 +44,18 @@ assert_fail(function() {
 });
 assert(function() {
   return retype(T(String, Number, function(x) { return x; })); 
+});
+assert(function() {
+  return T(T.type(Number), Number, function(x) { return x; })(1);
+});
+assert_fail(function() {
+  return T(T.type(Number), Number, function(x) { return x; })("abc");
+});
+assert(function() {
+  return T([Number, String], Number, function(xy) { return xy[0] })([1,"abc"]);
+});
+assert_fail(function() {
+  return T([Number, String], Number, function(xy) { return xy[0] })([1,2]);
 });
 
 var Or = T.forall(function(atoc, f) {
@@ -72,6 +84,15 @@ assert(function() {
 });
 assert(function() {
   return Or(first)(aObj)([1,2]);
+});
+
+var Enum = function(A, B) {
+  var left = T(A, [A, B], function(a) { return [a, null] });
+  var right = T(B, [A, B], function(b) { return [null, b] });
+  return Or(left)(right);
+};
+assert(function() {
+  return Enum(Number, String)(1);
 });
 
 render();

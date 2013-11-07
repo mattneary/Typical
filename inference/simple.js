@@ -10,39 +10,47 @@ var T = function(a, b, f) {
   typed.type = [a, b];
   return typed;
 };
-T.enforce = function(a, b, f) {
-  return T(a, b, f, true);
-};
 var isArray = function(a) {
   return function(as) {
     if( typeof as != 'object' ) return false;
     if( !as.filter ) return false;
-    return as.filter(function(x) { return !a(x) }).length == 0;
+    return as.filter(function(x) { return !a(x) }).length == 0 || x == null;
    };
+};
+var isTuple = function(ts) {
+  return function(as) {
+    if( typeof as != 'object' ) return false;
+    if( !as.filter ) return false;
+    return as.filter(function(x, i) { return !ts[i](x) }).length == 0 || x == null;
+  };
 };
 var isDuckTyped = function(ks, ts) {
   return function(o) {
     return ks.filter(function(k, i) {
       return !ts[i](o[k]);
-    }).length == 0;
+    }).length == 0 || x == null;
   };
 };
-var isNumber = function(x) { return typeof x == 'number' };
-var isString = function(x) { return typeof x == 'string' };
-var isBoolean = function(x) { return typeof x == 'boolean' };
+var isNumber = function(x) { return typeof x == 'number' || x == null };
+var isString = function(x) { return typeof x == 'string' || x == null };
+var isBoolean = function(x) { return typeof x == 'boolean' || x == null };
 var isType = function(x) { return x.isType };
 var checker = function(x) {
-  if( isType(x) ) return x;
+  if( x == null ) return true;
+  if( x && isType(x) ) return x;
   if( typeof x == 'function' ) {
     if( x == Number ) return isNumber;
     else if( x == String ) return isString;
     else if( x == Boolean ) return isBoolean;
     else return x; 
   } else if( typeof x == 'object' ) {
-    if( x.map ) return isArray(checker(x[0]));
+    if( x.map && x.length == 1 ) return isArray(checker(x[0]));
+    if( x.map && x.length > 1 ) return isTuple(x.map(checker));
     else return isDuckTyped(Object.keys(x), Object.keys(x).map(function(k) {
       return checker(x[k])
     }));
+  } else if( x == null ) {
+    return function() { return x == null || x == undefined; };
   } else {
     throw new Error("Type signature could not be parsed.");
   }
@@ -75,6 +83,7 @@ var forall = function(typer) {
 
 T.forall = forall;
 T.infer = infer;
+T.type = checker;
 
 module.exports = T;
 
