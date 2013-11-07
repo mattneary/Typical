@@ -58,20 +58,21 @@ assert_fail(function() {
   return T([Number, String], Number, function(xy) { return xy[0] })([1,2]);
 });
 
-var Or = T.forall(function(atoc, f) {
-  return T.forall(function(btoc, g) {
-    return function(x) {
-      // TODO: true polymorphism needed for pureness
-      if( atoc.type[0](x) ) {
-	return f(x);
-      } else if( btoc.type[0](x) ) {
-	return g(x);
-      } else {
-        throw new Error("Type does not match either of enum.");
-      }
-    };
+var Or = function(obj) {
+  return T.forall(function(atoc, f) {
+    return T.forall(function(btoc, g) {
+        // NB: this is an impure body mean to
+	// illustrate both effects of a sum type.
+	if( atoc.type[0](obj) ) {
+	  return f(obj);
+	} else if( btoc.type[0](obj) ) {
+	  return g(obj);
+	} else {
+	  throw new Error("Type does not match either of enum.");
+	}
+    });
   });
-});
+};
 var first = T([Number], Number, function(xs) { return xs[0] });
 assert(function() {
   return first([1,2,3]);
@@ -81,19 +82,10 @@ assert(function() {
   return aObj({a:1});
 });
 assert(function() {
-  return Or(first)(aObj)({a:1});
+  return Or({a:1})(first)(aObj);
 });
 assert(function() {
-  return Or(first)(aObj)([1,2]);
-});
-
-var Enum = function(A, B) {
-  var left = T(A, [A, B], function(a) { return [a, null] });
-  var right = T(B, [A, B], function(b) { return [null, b] });
-  return Or(left)(right);
-};
-assert(function() {
-  return Enum(Number, String)(1);
+  return Or([1,2])(first)(aObj);
 });
 
 render();
