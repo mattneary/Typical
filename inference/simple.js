@@ -34,10 +34,23 @@ var isDuckTyped = function(ks, ts) {
 var isNumber = function(x) { return typeof x == 'number' || x == null };
 var isString = function(x) { return typeof x == 'string' || x == null };
 var isBoolean = function(x) { return typeof x == 'boolean' || x == null };
-var isType = function(x) { return x.isType };
+var isType = function(x) { 
+  return x.isType || x == Number || x == String || x == Boolean ||
+         (typeof x == 'object' &&  
+	   (x instanceof Array && x.filter(function(x){
+	     return !isType(x);
+	   }).length == 0) ||
+	   Object.keys(x).filter(function(k) {
+	     return !isType(x[k])
+	   }).length == 0);
+};
+var isChecker = function(x) {
+  return x.isType;
+};
 var checker = function(x) {
   if( x == null ) return true;
-  if( x && isType(x) ) return x;
+  if( x && isChecker(x) ) return x;
+  if( x == T ) return isType;
   if( typeof x == 'function' ) {
     if( x == Number ) return isNumber;
     else if( x == String ) return isString;

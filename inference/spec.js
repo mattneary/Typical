@@ -61,6 +61,7 @@ assert_fail(function() {
 var Or = T.forall(function(atoc, f) {
   return T.forall(function(btoc, g) {
     return function(x) {
+      // TODO: true polymorphism needed for pureness
       if( atoc.type[0](x) ) {
 	return f(x);
       } else if( btoc.type[0](x) ) {
