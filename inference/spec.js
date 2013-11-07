@@ -14,11 +14,11 @@ assert(function() {
   return T([Number], Number, function(x) { return x[0] })([1]);
 });
 
-var id = T.forall(function(A) {
+var id = T.forall(function(A, a) {
   // A -> A forall A
   return T(A, A, function(x) {
     return x;
-  });
+  })(a);
 });
 assert(function() {
   return id(12);
@@ -33,11 +33,11 @@ assert(function() {
   return id([1,2,3]);
 });
 
-var retype = T.forall(function(A) {
+var retype = T.forall(function(A, a) {
   // A -> A, fail when A != [String -> Number]
   return T.enforce(A, A, function(x) { 
     return T(String, Number, function(x) { return x }) 
-  });
+  })(a);
 });
 assert_fail(function() {
   return retype(T(Number, Number, function(x) { return x; })); 
@@ -46,20 +46,18 @@ assert(function() {
   return retype(T(String, Number, function(x) { return x; })); 
 });
 
-var Or = T.forall(function(atoc) {
-  return function(f) {
-    return T.forall(function(btoc) {
-      return function(g) {
-	return function(x) {
-	  if( atoc.type[0](x) ) {
-	    return f(x);
-	  } else {
-	    return g(x);
-	  }
-	};
-      };
-    });
-  };
+var Or = T.forall(function(atoc, f) {
+  return T.forall(function(btoc, g) {
+    return function(x) {
+      if( atoc.type[0](x) ) {
+	return f(x);
+      } else if( btoc.type[0](x) ) {
+	return g(x);
+      } else {
+        throw new Error("Type does not match either of enum.");
+      }
+    };
+  });
 });
 var first = T([Number], Number, function(xs) { return xs[0] });
 assert(function() {

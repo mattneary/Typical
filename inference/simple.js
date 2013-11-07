@@ -68,7 +68,7 @@ var infer = function(x) {
 var forall = function(typer) {
   var typed = function(a) {
     var A = infer(a);
-    return typer(A)(a);
+    return typer(A, a);
   };
   return typed;
 };
