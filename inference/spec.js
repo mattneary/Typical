@@ -92,5 +92,28 @@ assert(function() {
   var id = T(Number, Number, function(x) {return x});
   return T(T(Number, Number), Number, function(f) { return f(1) })(id);
 });
+assert_fail(function() {
+  var id = T(Number, String, function(x) {return x+""});
+  return T(T(Number, Number), Number, function(f) { return f(1) })(id);
+});
+assert(function() {
+  var sum = T(Number, T(Number, Number), function(x) {
+    return T(Number, Number, function(y) {
+      return x+y;
+    });
+  });
+  return sum(1)(2);
+});
+assert(function() {
+  var render = T(Number, String, function(x) { return x+"" });
+  var join = T([Number], String, function(x) { return x.join("") });
+  var stringify = T(T(Number, String), T(T([Number], String), String), function(r) {
+    return T(T([Number], String), String, function(j) {
+      return r(1);
+    });
+  });
+  return stringify(render)(join);
+});
+
 render();
 

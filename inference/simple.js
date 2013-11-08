@@ -65,11 +65,17 @@ var checker = function(x) {
     throw new Error("Type signature could not be parsed.");
   }
 };
+var funTypesEqual = function(a, b) {
+  if( a.type && b.type ) {
+    return funTypesEqual(a.type[0], b.type[0]) && funTypesEqual(a.type[1], b.type[1]);
+  }
+  // TODO: find if two types are equal, will require naming probably
+  return a.toString() == b.toString();
+};
 var infer = function(x) {
   if( x.type ) {
     var inferred = function(y) {
-      if( !y.type ) return true;
-      return x.type[0] == y.type[0] && x.type[1] == y.type[1];
+      return funTypesEqual(x, y); 
     };
     inferred.type = x.type;
     return inferred;
