@@ -88,5 +88,9 @@ assert(function() {
   return Or([1,2])(first)(aObj);
 });
 
+assert(function() {
+  var id = T(Number, Number, function(x) {return x});
+  return T(T(Number, Number), Number, function(f) { return f(1) })(id);
+});
 render();
 

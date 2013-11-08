@@ -1,4 +1,5 @@
 var T = function(a, b, f) {
+  if( f == undefined ) return T.infer(T(a, b, function(){}));
   a = checker(a);
   b = checker(b);
   var typed = function(x) {
@@ -44,12 +45,8 @@ var isType = function(x) {
 	     return !isType(x[k])
 	   }).length == 0);
 };
-var isChecker = function(x) {
-  return x.isType;
-};
 var checker = function(x) {
   if( x == null ) return true;
-  if( x && isChecker(x) ) return x;
   if( x == T ) return isType;
   if( typeof x == 'function' ) {
     if( x == Number ) return isNumber;
@@ -71,6 +68,7 @@ var checker = function(x) {
 var infer = function(x) {
   if( x.type ) {
     var inferred = function(y) {
+      if( !y.type ) return true;
       return x.type[0] == y.type[0] && x.type[1] == y.type[1];
     };
     inferred.type = x.type;
