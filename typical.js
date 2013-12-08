@@ -6,7 +6,6 @@
 // - T.Vararg
 // - T.Rest
 // - T.Hungarian
-
 var T = function(fun/*, annotation*/) {
   // T is a typed function constructor. The first argument is a 
   // function and the rest are a type annotation, with the final 
@@ -26,7 +25,7 @@ var T = function(fun/*, annotation*/) {
   }
 
   // find function name by value
-  var name = Object.keys(root).filter(function(k){ return root[k]==fun })[0];
+  var name = Object.keys(root).filter(function(k){ return root[k]==fun; })[0];
 
   fun['typical_name'] = name || fun.name || 'anonymous';
 
@@ -37,6 +36,7 @@ var T = function(fun/*, annotation*/) {
 
   // if the function was found in the scope, mutate it.  
   root[name] = T.build.apply({}, toArray(arguments).slice(1).concat(fun));
+  return root[name];
 };
 
 T.build = function(/* types, fun */) {
@@ -94,7 +94,6 @@ T.build = function(/* types, fun */) {
     }, types);    
 
     if (!isEmpty(errors)) {
-      console.log(_args)
       throw new Error(errors.join(", "));
     }
 
@@ -104,7 +103,7 @@ T.build = function(/* types, fun */) {
       throw new Error(["Expected return value of ", 
                        fun.typical_name,
                        " to be of type ",
-                       getType(retType).name+"."].join(""))
+                       getType(retType).name+"."].join(""));
     }
 
     // return response if all checks pass
@@ -146,25 +145,25 @@ T.Type = function(args) {
 T.Vararg = function(fun, type, retType) {
   // forms a typed function accepting arguments of `type`
   // until it receives `null`.
-  var argType = T.Or(type, T.void);
-  var Nary = T([argType, T.Or(retType, T.Root)])
-  var Stack = T([[argType], T.Or(retType, Nary)])
+  var argType = T.Or(type, T.nil);
+  var Nary = T([argType, T.Or(retType, T.Root)]);
+  var Stack = T([[argType], T.Or(retType, Nary)]);
   var middle = Stack(function(xs) {
     return Nary(function(y) {
       var args = [].slice.call(arguments);
       var front = args.slice(0,-1);
-      return args[args.length-1]==null ? 
+      return args[args.length-1]===null ? 
              fun.apply({}, xs.concat(front)) :
-             middle(xs.concat(args)) 
-    })
-  })
+             middle(xs.concat(args)); 
+    });
+  });
   return Nary(function() {
     var args = [].slice.call(arguments);
     var front = [].slice.call(arguments).slice(0,-1);
-    return args[args.length-1]==null ?
+    return args[args.length-1]===null ?
            fun.apply({}, front) :
-           middle([].concat(args))
-  })
+           middle([].concat(args));
+  });
 };
 
 T.Rest = function(fun/*, types*/) {
@@ -227,7 +226,7 @@ T.Data = function() {
     var data = toArray(arguments);
     data.__proto__ = Data.prototype;
     return data;
-  };
+  }
   var cons = function() {
     var resp = Data.apply({}, arguments);
     for( var k in parts ) {
@@ -263,7 +262,7 @@ T.Enum = function() {
   }
   var cons = function(data) {
     // type-check
-    T([T.Or.apply({}, parts)].concat([T.void]))(function(){})(data);
+    T([T.Or.apply({}, parts)].concat([T.nil]))(function(){})(data);
 
     // instantiate an instance
     if( !(this instanceof cons) ) return new cons(data);
@@ -274,7 +273,8 @@ T.Enum = function() {
   };
   cons.__proto__ = T.Enum.prototype;
   cons.types = parts;
-  for( var k in parts ) {
+  // reusing k, because function scope
+  for( k in parts ) {
     if( parts[k] instanceof T.Data ) {
       parts[k].rooted = true;
       parts[k].root = cons;
@@ -313,7 +313,7 @@ T.Match = function(algebraic) {
     }
     return {
       resp: fun.apply({}, args.map(function(x, i) {
-        return unbox(type[i], x, i)
+        return unbox(type[i], x, i);
       }))
     };
   };
@@ -338,7 +338,7 @@ T.Match = function(algebraic) {
 
 // Non-parametrized Types
 // ----------------------
-T.void = {};
+T.nil = {};
 T.Circular = {};
 T.Root = {};
 
@@ -377,7 +377,7 @@ T.ns = function() {
 T.render = function(types) {
   // render a signature given the types
   var args = types.slice(0, types.length-1).map(getType);
-  var argNames = args.map(function(x) { return x.name });
+  var argNames = args.map(function(x) { return x.name; });
   return "(" + argNames.join(", ")+") -> "+getType(last(types)).name;
 };
 
@@ -476,9 +476,9 @@ var getDataType = function(type, typeRoot, signature) {
   };
 };
 var getVoidType = function(type, typeRoot, signature) {
-  // the void response type was passed
+  // the nil response type was passed
   return {
-    name: "void",
+    name: "nil",
     fun: function(x) {
       return !existy(x);
     }
@@ -590,7 +590,7 @@ var getType = function(type, typeRoot, signature) {
       return getEnumType;
     } else if( type instanceof T.Data ) {
       return getDataType;
-    } else if( type == T.void ) {
+    } else if( type == T.nil ) {
       return getVoidType;
     } else if( type == T.Circular || (type == typeRoot && !isRoot) ) {
       return getCircularType;
