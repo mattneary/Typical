@@ -1,5 +1,6 @@
 var T = function(a, b, f) {
   if( f == undefined ) return T.infer(T(a, b, function(){}));
+
   a = checker(a);
   b = checker(b);
   var typed = function(x) {
@@ -9,6 +10,7 @@ var T = function(a, b, f) {
     return resp;
   };
   typed.type = [a, b];
+
   return typed;
 };
 var isArray = function(a) {
