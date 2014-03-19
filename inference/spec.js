@@ -1,4 +1,4 @@
-var T = require('./simple');
+var T = require('./typical');
 var test = require('./test');
 assert = test.assert;
 assert_fail = test.assert_fail;
